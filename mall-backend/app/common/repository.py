@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Generic, TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.models import Base
@@ -32,7 +32,7 @@ class BaseRepository(Generic[T]):
 
     def page(self, page: int, pageSize: int, **filters: Any) -> tuple[list[T], int]:
         stmt = select(self.model).filter_by(**filters)
-        count_stmt = select(self.model).filter_by(**filters).with_only_columns(self.model.id)
+        count_stmt = select(func.count()).select_from(self.model).filter_by(**filters)
         total = self.db.scalar(count_stmt) or 0
         rows = list(self.db.scalars(stmt.offset((page - 1) * pageSize).limit(pageSize)))
         return rows, total

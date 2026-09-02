@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import jwt
 from passlib.context import CryptContext
@@ -14,11 +14,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return cast(str, pwd_context.hash(password))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return cast(bool, pwd_context.verify(plain, hashed))
 
 
 def generate_member_token() -> str:
@@ -41,4 +41,5 @@ def create_admin_jwt(admin_id: int, role: str) -> str:
 
 def decode_admin_jwt(token: str) -> dict[str, Any]:
     """解码并校验后台 JWT，失败抛异常。"""
-    return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    payload: dict[str, Any] = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    return payload

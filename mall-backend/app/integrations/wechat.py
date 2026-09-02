@@ -1,6 +1,8 @@
 """微信对接：code2Session、getPhoneNumber（骨架占位）。"""
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 
 from app.core.config import settings
@@ -21,4 +23,5 @@ async def code2session(code: str) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, params=params)
         resp.raise_for_status()
-        return resp.json()
+        data: dict[Any, Any] = resp.json()
+        return data

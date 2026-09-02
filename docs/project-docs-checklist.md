@@ -24,6 +24,7 @@
 - ✅ `docs/conventions/auth.md` — 通用规范：鉴权（P0）
 - ✅ `docs/conventions/logging.md` — 通用规范：日志（P0）
 - ✅ `docs/conventions/environment.md` — 通用规范：环境与接口联调（P0）
+- ✅ `docs/acceptance-p0.md` — P0 一期验收报告（2026-09-02：单测/静态/建库种子/E2E/构建/性能/一致性）
 - ✅ `mall-miniapp-uni/README.md` — 跑通前端的技术说明（npm 命令等）
 
 ### 1.3 关键决策与外部依赖
@@ -124,6 +125,7 @@ shopping/
 │   ├── architecture.md                 # ✅ P0-1 技术选型与架构设计（模板化）
 │   ├── prd.md                          # ✅ P0-2 产品需求文档
 │   ├── test-cases.md                   # ✅ 测试用例文档（A: H5 手测 28 条 + B: 后端接口用例 + C: 一致性）
+│   ├── acceptance-p0.md                # ✅ P0 一期验收报告（2026-09-02）
 │   ├── conventions/                    # ✅ P0-4 通用规范
 │   │   ├── error-code.md               # ✅ 错误码
 │   │   ├── auth.md                     # ✅ 鉴权

@@ -45,6 +45,7 @@ def test_get_product_detail_ok(monkeypatch: pytest.MonkeyPatch) -> None:
                     sku_text="白；均码",
                     price=99.0,
                     stock=5,
+                    lock_stock=0,
                     image=None,
                 )
             ]

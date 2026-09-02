@@ -327,6 +327,29 @@ function releaseStock(order) {
   });
 }
 
+// 支付成功转实扣：stock -= qty 且 lockStock -= qty（对齐真实后端 /  api-design §9.5）
+function settleStock(order) {
+  order.items.forEach((item, index) => {
+    const skuId = order.itemSkus ? order.itemSkus[index] : null;
+    if (!skuId) return;
+    const found = findSku(skuId);
+    if (found) {
+      found.sku.stock = Math.max(0, found.sku.stock - item.quantity);
+      found.sku.lockStock = Math.max(0, found.sku.lockStock - item.quantity);
+    }
+  });
+}
+
+// 退款回补已实扣库存：stock += qty（支付已实扣，退款恢复可售）
+function restoreStock(order) {
+  order.items.forEach((item, index) => {
+    const skuId = order.itemSkus ? order.itemSkus[index] : null;
+    if (!skuId) return;
+    const found = findSku(skuId);
+    if (found) found.sku.stock += item.quantity;
+  });
+}
+
 function reset() {
   buildProducts();
   cartSeq = 0;
@@ -909,6 +932,7 @@ export const store = {
     order.status = 'paid';
     order.payType = 'mock';
     order.payTime = nowText();
+    settleStock(order);
     return orderDto(order, { detail: true });
   },
 
@@ -929,7 +953,7 @@ export const store = {
     order.refundType = type || (order.status === 'paid' ? 'refund' : 'return');
     order.refundTime = nowText();
     order.status = 'refund';
-    releaseStock(order);
+    restoreStock(order);
     return orderDto(order, { detail: true });
   },
 

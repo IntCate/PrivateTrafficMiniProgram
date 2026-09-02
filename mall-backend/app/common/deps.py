@@ -61,7 +61,7 @@ def get_current_admin(
     return payload
 
 
-def require_roles(*names: str):
+def require_roles(*names: str) -> Any:
     """在 get_current_admin 基础上追加角色白名单。"""
 
     def dependency(admin: dict[str, Any] = Depends(get_current_admin)) -> dict[str, Any]:

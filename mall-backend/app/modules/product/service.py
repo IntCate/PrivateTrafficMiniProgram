@@ -115,7 +115,8 @@ def get_product_detail(db: Session, product_id: int) -> dict[str, Any]:
                 "attrs": _as_list(s.attrs),
                 "sku_text": s.sku_text,
                 "price": s.price,
-                "stock": s.stock,
+                # 对齐 §7.1 可用库存口径：stock - lock_stock（前端弹层数量上限据此）
+                "stock": max(s.stock - s.lock_stock, 0),
                 "image": s.image,
             }
             for s in skus

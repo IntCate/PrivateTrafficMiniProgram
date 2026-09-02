@@ -34,7 +34,7 @@
 - 通用字段：`created_at` / `updated_at`（DATETIME）
 - 金额：一律 `DECIMAL(10,2)`，单位元
 - 状态字段：使用字符串状态码（与前端现有 `pending/paid/shipped/completed/refund` 保持一致），便于联调与可读性；入库前 `CHECK` 或由应用层校验
-- 删除策略：Base 提供 `deleted`（TINYINT，0/1）逻辑删除能力，业务表按需启用（当前仅 `orders`、`shipping_address` 使用）；商品、会员等以状态字段软开关，不物理删除
+- 删除策略：Base 提供 `deleted`（TINYINT，0/1）逻辑删除能力。当前由 `CommonFields` 统一启用，业务表包括 `member`/`member_session`/`category`/`product`/`product_sku`/`banner`/`orders`/`shipping_address`（与 ORM/迁移/schema.sql 三端一致）；`order_item`/`cart`/`favorite` 按需不启用。商品、会员以状态字段软开关 + `deleted` 软删双层兜底，不物理删除
 
 ### 1.4 约定说明
 
@@ -447,4 +447,4 @@ coupon (券模板)
 2. **订单金额**：服务端以 `order_item.price × quantity` 汇总，禁止信任客户端上送金额
 3. **地址快照**：下单时复制地址到 `orders` 表，后续修改地址不影响历史订单
 4. **优惠券/积分**：参与金额计算时在事务内用 `SELECT ... FOR UPDATE`（MySQL 行锁）防并发超发
-5. **逻辑删除**：`order`/`address` 使用 `deleted` 标志，默认查询条件过滤
+5. **逻辑删除**：`order`/`address`/`member`/`product` 等启用 `deleted` 标志（三端一致，见 §1.3），默认查询条件过滤

@@ -51,7 +51,7 @@
 
 ### B1 认证
 
-> 状态：B1-1 ~ B1-5 已实现并通过前后端联调（真实 MySQL）；B1-2 有单测覆盖（认证单测聚焦 code2session 服务层）；B1-4/B1-5 无独立单测（401 由 `get_current_member` Depends 统一拦截、logout 已强制鉴权，均走联调覆盖）。
+> 状态：B1-1 \~ B1-5 已实现并通过前后端联调（真实 MySQL）；B1-2 有单测覆盖（认证单测聚焦 code2session 服务层）；B1-4/B1-5 无独立单测（401 由 `get_current_member` Depends 统一拦截、logout 已强制鉴权，均走联调覆盖）。
 
 | #    | 单向         | 输入                                 | 预期                                                                        |
 | ---- | ---------- | ---------------------------------- | ------------------------------------------------------------------------- |
@@ -110,24 +110,24 @@
 
 > 状态：B5-1 \~ B5-14 已实现（29 条单测 + 真实 MySQL 端到端联调通过）。
 
-| #     | 单向          | 输入                                                    | 预期                                        |
-| ----- | ----------- | ----------------------------------------------------- | ----------------------------------------- |
-| B5-1  | 结算预览        | 勾选/传入 `cartItemIds`                                   | `items/amounts/addresses` 正确；勾选为空返回 `400` |
-| B5-2  | 预览含失效项      | 勾选下架/0 库存项                                            | `1203`（`data` 带 `unavailables`）           |
-| B5-3  | 预览库存不足      | 勾选可售但数量超库存                                            | `1104`                                    |
-| B5-3a | 直购预览        | `GET /api/orders/preview-direct?skuId&quantity`       | 返回单商品明细 + 地址列表；不写购物车                      |
-| B5-3b | 直购下单        | `POST /api/orders/direct`                             | 生成 pending 订单，不写/不删购物车项；无地址 `404`         |
-| B5-4  | 创建订单        | 合法                                                    | 同事务：订单+明细+地址快照+库存预占+删除购物车项；金额校验失败 `1404`  |
-| B5-5  | 订单列表筛选      | 按 status 筛选 + 分页                                      | 各状态正确；角标仅统计 pending/paid/shipped/refund   |
-| B5-6  | 支付成功        | `POST /api/orders/{id}/pay` mock                      | pending→paid 且库存转实扣（`stock`/`lock_stock` 双扣）；重复支付 `409`                   |
-| B5-7  | 取消回补        | 取消 pending                                            | cancelled + 释放锁定库存（`lock_stock -= qty`）；非 pending 取消 `1402`      |
-| B5-8  | 提醒发货        | paid                                                  | `reminded:true`；非 paid `1402`             |
-| B5-9  | 确认收货        | shipped                                               | completed + 积分累加；非 shipped `1402`         |
-| B5-10 | 状态机非法流转     | 越级操作                                                  | `1402` 订单状态不允许当前操作                        |
-| B5-11 | 越权订单        | 访问他人订单                                                | `1403` 订单归属不匹配                            |
-| B5-12 | 再次购买        | `buy-again`                                           | 生成新 pending 订单；无地址/空商品 `400`              |
-| B5-13 | 订单不存在/并发锁库存 | 不存在 id / 并发下单                                         | `404` / `1104` 或 `1406` 库存锁定失败            |
-| B5-14 | 售后/退款申请     | `POST /api/orders/{id}/refund` paid/shipped/completed | 订单转 refund，回补已实扣库存（`stock += qty`），返回 detail DTO；非三态 `1402`  |
+| #     | 单向          | 输入                                                    | 预期                                                          |
+| ----- | ----------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| B5-1  | 结算预览        | 勾选/传入 `cartItemIds`                                   | `items/amounts/addresses` 正确；勾选为空返回 `400`                   |
+| B5-2  | 预览含失效项      | 勾选下架/0 库存项                                            | `1203`（`data` 带 `unavailables`）                             |
+| B5-3  | 预览库存不足      | 勾选可售但数量超库存                                            | `1104`                                                      |
+| B5-3a | 直购预览        | `GET /api/orders/preview-direct?skuId&quantity`       | 返回单商品明细 + 地址列表；不写购物车                                        |
+| B5-3b | 直购下单        | `POST /api/orders/direct`                             | 生成 pending 订单，不写/不删购物车项；无地址 `404`                           |
+| B5-4  | 创建订单        | 合法                                                    | 同事务：订单+明细+地址快照+库存预占+删除购物车项；金额校验失败 `1404`                    |
+| B5-5  | 订单列表筛选      | 按 status 筛选 + 分页                                      | 各状态正确；角标仅统计 pending/paid/shipped/refund                     |
+| B5-6  | 支付成功        | `POST /api/orders/{id}/pay` mock                      | pending→paid 且库存转实扣（`stock`/`lock_stock` 双扣）；重复支付 `409`     |
+| B5-7  | 取消回补        | 取消 pending                                            | cancelled + 释放锁定库存（`lock_stock -= qty`）；非 pending 取消 `1402` |
+| B5-8  | 提醒发货        | paid                                                  | `reminded:true`；非 paid `1402`                               |
+| B5-9  | 确认收货        | shipped                                               | completed + 积分累加；非 shipped `1402`                           |
+| B5-10 | 状态机非法流转     | 越级操作                                                  | `1402` 订单状态不允许当前操作                                          |
+| B5-11 | 越权订单        | 访问他人订单                                                | `1403` 订单归属不匹配                                              |
+| B5-12 | 再次购买        | `buy-again`                                           | 生成新 pending 订单；无地址/空商品 `400`                                |
+| B5-13 | 订单不存在/并发锁库存 | 不存在 id / 并发下单                                         | `404` / `1104` 或 `1406` 库存锁定失败                              |
+| B5-14 | 售后/退款申请     | `POST /api/orders/{id}/refund` paid/shipped/completed | 订单转 refund，回补已实扣库存（`stock += qty`），返回 detail DTO；非三态 `1402` |
 
 ### B6 收藏 / B7 会员
 

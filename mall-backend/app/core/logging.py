@@ -67,7 +67,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request_id_var.set(request_id)
         request.state.request_id = request_id
         start = time.perf_counter()
-        response = await call_next(request)
+        response: Response = await call_next(request)
         cost_ms = int((time.perf_counter() - start) * 1000)
         response.headers["X-Request-Id"] = request_id
         logging.getLogger("app.access").info(

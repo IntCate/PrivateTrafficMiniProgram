@@ -1,11 +1,12 @@
 -- =============================================================================
--- 快乐购商城 · 初始化种子数据 (seed-data.sql)
+-- 快乐购商城 · 初始化种子数据（前台段）
 -- 对齐 docs/database-design.md §4 初始化数据 + 前端 mock（store.js）
 --
 -- 说明：
---   * 须在 schema.sql 之后执行
+--   * 须在 alembic upgrade head（或 schema.sql）建表之后执行
+--   * 仅含 C 端前台表（category/product/product_sku/banner），导入不依赖后台表
+--   * 后台种子（sys_config/admin_user）见同目录 seed-backend.sql，待后台模块建表后执行
 --   * 图片 URL 为前端相对路径占位（/static/...），上线前替换为真实 CDN
---   * 管理员初始密码占位（BCrypt），上线前必须修改
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -144,20 +145,5 @@ VALUES
 ('theme', '会员专享',          '积分抵现', '/static/hero-banner.jpg', 'page',     '/pages/me/me',            2, 1),
 ('theme', '通勤百搭',          '精致搭配', '/static/hero-banner.jpg', 'category', '2',                      3, 1),
 ('theme', '影音数码',          '沉浸体验', '/static/hero-banner.jpg', 'category', '3',                      4, 1);
-
--- ---------------------------------------------------------------------------
--- 5. 系统配置（预留键）
--- ---------------------------------------------------------------------------
-INSERT INTO `sys_config` (`config_key`, `config_value`, `remark`) VALUES
-('service_hotline',         '400-800-8888', '客服热线'),
-('free_shipping_threshold', '0',           '包邮门槛（0 表示全包邮）'),
-('app_version',             '1.0.0',       'APP 版本');
-
--- ---------------------------------------------------------------------------
--- 6. 管理员（初始账号，上线前必须修改密码）
---    password 为 Admin@123456 的 BCrypt 哈希（passlib 生成）
--- ---------------------------------------------------------------------------
-INSERT INTO `admin_user` (`username`, `password`, `nickname`, `role`, `status`) VALUES
-('admin', '$2b$12$SXWTlGg7Y9UORKYSnCmlK.ipclECAA0kc5kcQgVER2KOSodQA60fu', '超级管理员', 'admin', 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

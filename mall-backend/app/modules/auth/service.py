@@ -82,6 +82,11 @@ async def login(
     token = generate_member_token()
     expires_at = datetime.now(UTC) + timedelta(days=settings.token_ttl_days)
     session_repo.save(MemberSession(user_id=member.id, token=token, expires_at=expires_at))
+    # 顺带清理该会员的过期会话，防止 member_session 无界膨胀（known-issues #3）
+    db.query(MemberSession).filter(
+        MemberSession.user_id == member.id,
+        MemberSession.expires_at < datetime.now(UTC),
+    ).delete(synchronize_session=False)
     db.commit()
 
     logger.info(
