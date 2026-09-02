@@ -13,13 +13,19 @@ from app.modules.favorite.api import router as favorite_router
 from app.modules.member.api import router as member_router
 from app.modules.order.api import router as order_router
 from app.modules.points.api import router as points_router
-from app.modules.product.api import router as product_router
+from app.modules.product.api import (
+    category_router,
+    home_router,
+    product_router,
+)
 
 api_router = APIRouter()
 
 # C 端
 api_router.include_router(auth_router, prefix="/api")
 api_router.include_router(member_router, prefix="/api")
+api_router.include_router(home_router, prefix="/api")
+api_router.include_router(category_router, prefix="/api")
 api_router.include_router(product_router, prefix="/api")
 api_router.include_router(cart_router, prefix="/api")
 api_router.include_router(address_router, prefix="/api")

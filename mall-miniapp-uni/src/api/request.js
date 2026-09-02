@@ -13,6 +13,17 @@ function handleAuthError() {
   uni.showToast({ title: '登录状态已失效', icon: 'none' });
 }
 
+function cleanParams(params) {
+  if (!params || typeof params !== 'object') return params;
+  const result = {};
+  Object.keys(params).forEach((k) => {
+    const v = params[k];
+    if (v === null || v === undefined || v === '' || v === 'undefined' || v === 'null') return;
+    result[k] = v;
+  });
+  return result;
+}
+
 export function request(options) {
   const { url, method = 'GET', data, params } = options;
   const token = getToken();
@@ -34,7 +45,7 @@ export function request(options) {
     uni.request({
       url: BASE_URL + url,
       method,
-      data: method === 'GET' ? params : data,
+      data: method === 'GET' ? cleanParams(params) : data,
       header: {
         'Content-Type': 'application/json; charset=utf-8',
         Authorization: token ? `Bearer ${token}` : '',
