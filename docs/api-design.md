@@ -1010,21 +1010,21 @@ GET /api/after-sales/{id}
 
 ## 15. 边界与风险
 
-| 场景                                           | 建议                                                                            |
-| -------------------------------------------- | ----------------------------------------------------------------------------- |
-| 前端目前购物车/订单存在本地，切后端后需**一次性迁移**                | 首版不做数据迁移，本地数据可丢弃                                                              |
-| 前端 `products.vue` 的"加入购物车"仅 toast 未真正入车      | **必修项**：接入 `POST /api/cart/items`（默认取首个 SKU）                                  |
-| `product-detail.vue` 的 SKU 弹层已按 `attrs` 动态渲染 | 已实现：属性组由 `/api/products/{id}` 返回的 `skus[].attrs` 聚合，支持任意维度                    |
-| 收藏页当前是写死数组                                   | **必修项**：改调 `/api/favorites`                                                   |
-| `me.vue` 会员数据（积分/券/等级/昵称）为写死                 | **必修项**：改调 `/api/member/overview`                                             |
-| 订单号 `K202608301420` 前缀 `K`                   | 服务端保留 `K+yyyyMMddHHmmss+3位随机` 生成规则即可兼容展示                                      |
-| 支付回调与退款                                      | 依赖微信商户号资质，未开通前用 `mock`                                                        |
-| 金额展示 `¥` 由前端处理                               | 接口只回数字，不返回货币符号                                                                |
-| `me.vue` 我的页角标跳转订单页传 `1/2/3/4` 数字 tab        | **必修项**：改为订单状态字符串（pending/paid/...）作为 `status` 参数                             |
-| `order-confirm.vue` 进入页面即 `createOrder` 落单   | **必修项**：改为先调结算预览（`GET /api/orders/preview`），仅确认提交时才创建订单                       |
-| 地址表单为 `region` 数组（省/市/区）                     | **必修项**：提交时拆分映射为 `province/city/district` 字段，展示用 `regionText`                 |
-| 取消订单当前为 `removeOrder` 删除                     | **必修项**：保留订单并以 `cancelled` 状态展示；前端 `statusMap`/`statusDescMap` 补充 `cancelled` |
-| `buyAgain` 当前把快照塞回结算页                        | **必修项**：改为调 `POST /api/orders/{id}/buy-again` 重新下单                            |
+| 场景                                           | 建议                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 前端目前购物车/订单存在本地，切后端后需**一次性迁移**                | 首版不做数据迁移，本地数据可丢弃                                                                                             |
+| 前端 `products.vue` 的"加入购物车"仅 toast 未真正入车      | **~~必修项~~**~~：接入~~ ~~`POST /api/cart/items`（默认取首个 SKU）~~ **已解决**：`products.vue`/`product-detail.vue` 已接入真实加购 |
+| `product-detail.vue` 的 SKU 弹层已按 `attrs` 动态渲染 | 已实现：属性组由 `/api/products/{id}` 返回的 `skus[].attrs` 聚合，支持任意维度                                                   |
+| 收藏页当前是写死数组                                   | **必修项**：改调 `/api/favorites`                                                                                  |
+| `me.vue` 会员数据（积分/券/等级/昵称）为写死                 | **必修项**：改调 `/api/member/overview`                                                                            |
+| 订单号 `K202608301420` 前缀 `K`                   | 服务端保留 `K+yyyyMMddHHmmss+3位随机` 生成规则即可兼容展示                                                                     |
+| 支付回调与退款                                      | 依赖微信商户号资质，未开通前用 `mock`                                                                                       |
+| 金额展示 `¥` 由前端处理                               | 接口只回数字，不返回货币符号                                                                                               |
+| `me.vue` 我的页角标跳转订单页传 `1/2/3/4` 数字 tab        | **必修项**：改为订单状态字符串（pending/paid/...）作为 `status` 参数                                                            |
+| `order-confirm.vue` 进入页面即 `createOrder` 落单   | **必修项**：改为先调结算预览（`GET /api/orders/preview`），仅确认提交时才创建订单                                                      |
+| 地址表单为 `region` 数组（省/市/区）                     | **必修项**：提交时拆分映射为 `province/city/district` 字段，展示用 `regionText`                                                |
+| 取消订单当前为 `removeOrder` 删除                     | **必修项**：保留订单并以 `cancelled` 状态展示；前端 `statusMap`/`statusDescMap` 补充 `cancelled`                                |
+| `buyAgain` 当前把快照塞回结算页                        | **必修项**：改为调 `POST /api/orders/{id}/buy-again` 重新下单                                                           |
 
 ***
 

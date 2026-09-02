@@ -11,6 +11,7 @@ from app.core.models import Base
 
 # 导入业务模型使其注册进 Base.metadata，供 autogenerate 检测
 from app.modules.auth import models as auth_models  # noqa: F401
+from app.modules.cart import models as cart_models  # noqa: F401
 from app.modules.product import models as product_models  # noqa: F401
 
 config = context.config
