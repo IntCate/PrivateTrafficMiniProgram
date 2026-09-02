@@ -13,6 +13,7 @@ from app.core.models import Base
 from app.modules.address import models as address_models  # noqa: F401
 from app.modules.auth import models as auth_models  # noqa: F401
 from app.modules.cart import models as cart_models  # noqa: F401
+from app.modules.favorite import models as favorite_models  # noqa: F401
 from app.modules.order import models as order_models  # noqa: F401
 from app.modules.product import models as product_models  # noqa: F401
 

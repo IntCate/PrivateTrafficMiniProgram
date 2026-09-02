@@ -876,10 +876,25 @@ POST /api/favorites/{productId}
 
 幂等（定稿）：重复收藏返回成功（`200`），服务端按 `member + product` 唯一约束去重，不返回 `409`。
 
+响应 `data`：
+
+```json
+{ "favorited": true, "existed": false }
+```
+
+- `existed`：本次收藏前是否已存在（重复收藏为 `true`，不新增记录）
+- 商品不存在：`404`；商品已下架：`1102`「商品已下架」（对应 test-cases B6-2）
+
 ### 10.3 取消收藏
 
 ```
 DELETE /api/favorites/{productId}
+```
+
+幂等移除：未收藏时同样返回成功。响应 `data`：
+
+```json
+{ "favorited": false }
 ```
 
 ***
