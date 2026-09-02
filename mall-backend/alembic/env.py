@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from alembic import context
 from app.core.config import settings
 from app.core.models import Base
 
@@ -13,6 +13,7 @@ from app.core.models import Base
 from app.modules.address import models as address_models  # noqa: F401
 from app.modules.auth import models as auth_models  # noqa: F401
 from app.modules.cart import models as cart_models  # noqa: F401
+from app.modules.order import models as order_models  # noqa: F401
 from app.modules.product import models as product_models  # noqa: F401
 
 config = context.config

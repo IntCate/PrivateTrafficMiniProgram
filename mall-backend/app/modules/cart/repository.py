@@ -38,6 +38,12 @@ class CartRepository(BaseRepository[Cart]):
         result = cast(CursorResult[Any], self.db.execute(stmt))
         return result.rowcount or 0
 
+    def delete_by_skus(self, user_id: int, sku_ids: list[int]) -> int:
+        """按 SKU 物理删除购物车项（下单结算后清理，对齐 api-design §9.2），返回删除条数。"""
+        stmt = delete(Cart).where(Cart.user_id == user_id, Cart.sku_id.in_(sku_ids))
+        result = cast(CursorResult[Any], self.db.execute(stmt))
+        return result.rowcount or 0
+
     def set_all_selected(self, user_id: int, selected: bool) -> None:
         """全部购物车项勾选/取消。"""
         self.db.execute(
