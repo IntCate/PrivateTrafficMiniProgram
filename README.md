@@ -37,7 +37,9 @@ shopping/
 | [docs/api-design.md](docs/api-design.md) | 接口契约（路由、出入参、分页、响应体） |
 | [docs/database-design.md](docs/database-design.md) | 数据契约（17 张表字段、约束、索引） |
 | [docs/test-cases.md](docs/test-cases.md) | 测试用例清单 |
-| [docs/conventions/](docs/conventions/) | 规范：error-code / auth / logging / environment |
+| [docs/conventions/](docs/conventions/) | 规范：error-code / auth / logging / environment / backend |
+| [docs/integrations/wechat.md](docs/integrations/wechat.md) | 微信登录 / 支付对接说明 |
+| [docs/sql/](docs/sql/) | 数据库结构 schema.sql 与种子数据 seed-data.sql |
 
 ## 快速开始
 
