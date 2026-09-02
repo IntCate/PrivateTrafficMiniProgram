@@ -1,0 +1,39 @@
+# ===== 环境与密钥（严禁提交）=====
+.env
+.env.*
+!.env.example
+
+# ===== 通用 / 编辑器 / 系统 =====
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ===== 后端 Python（mall-backend）=====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+logs/
+uploads/
+
+# ===== 前端 uni-app（mall-miniapp-uni）=====
+node_modules/
+dist/
+unpackage/
+project.private.config.json
+project.private.config.*
+*.local
+.DS_Store
+
+# ===== HBuilderX =====
+.hbuilderx/
