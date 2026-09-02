@@ -945,11 +945,11 @@ PUT /api/member/profile
 { "nickname": "快乐购物家", "avatar": "https://cdn.example.com/avatars/xxx.jpg" }
 ```
 
-业务规则（对应 PRD §4.9 合规规则）：
+业务规则（对应 PRD §4.9 合规规则，P0 口径）：
 
-- 头像必须为自有存储域 URL（先走上传接口），外部 URL 一律拒绝，返回 `1003`
+- 头像：**P0 校验 `http(s)` URL 即可**（无上传接口，微信登录头像为第三方 CDN 域名）；自有存储域白名单校验（先走上传接口）随上传接口上线后收紧，见 `docs/known-issues.md` 条目
 
-- 昵称长度 1-20 字并过滤敏感词，非法返回 `1003`
+- 昵称：长度 1-20 字返回 `1003`；敏感词过滤 P0 暂无词库暂不启用（见 `docs/known-issues.md` 条目）
 
 - 仅可更新本人资料；成功后同步 `member` 表并返回最新资料
 
