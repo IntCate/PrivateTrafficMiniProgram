@@ -87,6 +87,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { homeApi } from '@/api';
 
 const member = ref(null);
@@ -151,8 +152,7 @@ const onTouchEnd = (e) => {
   }
 };
 
-onMounted(async () => {
-  timer = setInterval(next, 3000);
+const loadData = async () => {
   try {
     const data = await homeApi.getIndex();
     member.value = data.member;
@@ -162,6 +162,15 @@ onMounted(async () => {
   } catch (e) {
     // 接口失败时保持默认展示
   }
+};
+
+// 每次回到首页 tab 都刷新数据（含用户昵称/积分，与其他 tab 页修改后保持同步）
+onShow(() => {
+  loadData();
+});
+
+onMounted(() => {
+  timer = setInterval(next, 3000);
 });
 
 onUnmounted(() => {
