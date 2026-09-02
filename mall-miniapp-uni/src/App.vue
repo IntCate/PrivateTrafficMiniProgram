@@ -1,5 +1,11 @@
 <script>
-export default {};
+import { ensureLogin } from '@/api/auth';
+
+export default {
+  onLaunch() {
+    ensureLogin().catch(() => {});
+  },
+};
 </script>
 
 <style lang="scss">

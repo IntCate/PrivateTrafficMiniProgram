@@ -1,4 +1,4 @@
-import { TOKEN_KEY } from '../config';
+import { TOKEN_KEY, useMock } from '../config';
 
 const pad = (n) => (n < 10 ? '0' + n : '' + n);
 
@@ -496,6 +496,7 @@ function generateToken() {
 }
 
 function toPersistToken() {
+  if (!useMock) return;
   try {
     uni.setStorageSync(TOKEN_KEY, state.member.token);
   } catch (e) {
@@ -504,7 +505,7 @@ function toPersistToken() {
 }
 
 reset();
-toPersistToken();
+if (useMock) toPersistToken();
 
 export const store = {
   ensureAuth,
