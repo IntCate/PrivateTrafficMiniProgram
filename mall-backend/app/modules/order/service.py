@@ -161,6 +161,31 @@ def _release_stock(db: Session, order: Order) -> None:
             sku.lock_stock = max(sku.lock_stock - item.quantity, 0)
 
 
+def _settle_stock(db: Session, order: Order) -> None:
+    """支付成功转实扣：stock -= qty 且 lock_stock -= qty（对齐 PRD §4.x / api-design §9）。
+
+    预占成功时已保证 stock - lock_stock >= qty，此处 max 仅为防御性下限。
+    """
+    items = OrderItemRepository(db).list_by_order_ids([order.id])
+    for item in items:
+        sku = db.get(ProductSku, item.sku_id)
+        if sku:
+            sku.stock = max(sku.stock - item.quantity, 0)
+            sku.lock_stock = max(sku.lock_stock - item.quantity, 0)
+
+
+def _restore_stock(db: Session, order: Order) -> None:
+    """售后/退款回补库存：stock += qty（支付已实扣，退款恢复可售，对齐 PRD §4.x）。
+
+    订单流转：下单预占 lock → 支付转实扣（stock/lock 同减）→ 退款把已售出部分退回库存。
+    """
+    items = OrderItemRepository(db).list_by_order_ids([order.id])
+    for item in items:
+        sku = db.get(ProductSku, item.sku_id)
+        if sku:
+            sku.stock += item.quantity
+
+
 def _build_order(
     db: Session,
     user_id: int,
@@ -480,6 +505,7 @@ def pay_order(db: Session, user_id: int, order_id: int, pay_type: str = "mock") 
     order.status = "paid"
     order.pay_type = pay_type or "mock"
     order.pay_time = datetime.now()
+    _settle_stock(db, order)
     db.commit()
     return _detail_dto(order, _order_items(db, order))
 
@@ -506,12 +532,12 @@ def refund_order(
     refund_type: str | None = None,
 ) -> dict:
     """申请售后/退款（对齐 api-design §9.7 / test-cases B5-14）。
-    仅 paid/shipped/completed 可申请；订单转 refund 并释放锁定库存；非三态 → 1402。
+    仅 paid/shipped/completed 可申请；订单转 refund 并回补已实扣库存；非三态 → 1402。
     """
     order = _get_owned_order(db, user_id, order_id)
     if order.status not in REFUNDABLE_STATUSES:
         raise BizException(1402, "订单状态不允许申请售后")
-    _release_stock(db, order)
+    _restore_stock(db, order)
     original_status = order.status
     order.status = "refund"
     order.refund_reason = reason or "不符合预期"

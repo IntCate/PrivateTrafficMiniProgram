@@ -466,10 +466,13 @@ def test_order_stats(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
 
 def test_pay_ok(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
     db, _, _ = env
+    db._skus[20].lock_stock = 1  # 模拟下单已预占 1 件
     data = service.pay_order(db, 1, 1003)
     assert data["status"] == "paid"
     assert data["payType"] == "mock"
     assert data["payTime"] is not None
+    assert db._skus[20].stock == 49  # 支付成功转实扣
+    assert db._skus[20].lock_stock == 0  # 释放锁定
 
 
 def test_pay_repeat_409(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
@@ -578,12 +581,12 @@ def test_buy_again_no_address_400(
 
 # ---- B5-14 售后/退款 ----
 
-def test_refund_ok_release_stock(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+def test_refund_ok_restore_stock(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
     db, _, _ = env
-    db._skus[10].lock_stock = 3
+    db._skus[10].stock = 49  # 模拟支付已实扣 1 件（stock 50 → 49）
     data = service.refund_order(db, 1, 1001, "不符合预期", "refund")
     assert data["status"] == "refund"
-    assert db._skus[10].lock_stock == 2  # 库存回补
+    assert db._skus[10].stock == 50  # 退款回补已实扣库存
 
 
 def test_refund_default_type_by_status(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:

@@ -72,6 +72,7 @@
 - 下单（`status=pending`）即预占：`lock_stock += qty`；支付成功 → `stock -= qty` 并释放 `lock_stock -= qty`；
 - 超时未支付（30 分钟）由定时任务关闭订单并回补 `lock_stock`；
 - 取消/超时关闭的订单若已占用库存一律回补，保证不超卖不丢量；
+- 已支付订单退款（refund）：回补已实扣库存 `stock += qty`（支付已实扣，退款恢复可售）；
 - 并发扣减依赖事务内 `SELECT ... FOR UPDATE` 行锁，禁止应用层自旋。
 
 ### 4.3 金额规则

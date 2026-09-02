@@ -168,7 +168,7 @@ POST /api/auth/login
 POST /api/auth/logout
 ```
 
-无请求体。成功 `code=0`，服务端清除会话。
+无请求体。成功 `code=0`，服务端清除会话；与其它 🔒 接口一致强制校验登录态，无/无效/过期 token 返回 `401`。
 
 ***
 
@@ -743,6 +743,8 @@ POST /api/orders/{id}/pay
 
 - `mock`：联调模式，直接置 `paid`（对应前端当前模拟支付）
 
+- 支付成功（含 `mock`）同时**库存转实扣**：`product_sku.stock -= qty` 且 `lock_stock -= qty`（下单时已预占 `lock_stock`，支付后实扣可售库存；对齐 §9.2 口径）
+
 - `wechat`（预留）：返回 `{ "payParams": { "timeStamp": "…", "nonceStr": "…", "package": "…", "signType": "RSA", "paySign": "…" } }`，前端 `wx.requestPayment` 后回调通知
 
 - 重复支付返回 `409`
@@ -759,7 +761,7 @@ POST /api/orders/{id}/cancel
 { "reason": "不想要了" }
 ```
 
-- 仅 `pending` 可取消；取消后回补锁定库存
+- 仅 `pending` 可取消；取消后释放锁定库存（`lock_stock -= qty`，恢复可用库存）
 
 - 取消成功后订单保留在列表中，前端以 `cancelled`（已取消）状态展示
 
@@ -789,7 +791,7 @@ POST /api/orders/{id}/refund
 
 - 仅 `paid` / `shipped` / `completed` 可申请售后；非三态返回 `1402`
 
-- 申请后订单状态置 `refund`，释放锁库存（`lock_stock -= qty`），订单暂停流转
+- 申请后订单状态置 `refund`，**回补已实扣库存**（`stock += qty`；支付已转实扣，退款恢复可售），订单暂停流转
 
 - 按钮文案由前端按原状态区分：paid「取消并退款」、shipped「退货退款」、completed「申请售后」（对应 `orders.vue` / `order-detail.vue` `refundLabel`）
 
@@ -1063,7 +1065,7 @@ GET /api/after-sales/{id}
 
 - 覆盖本文档 §3\~§11 全部已实现接口，对接 12 个前端页面。
 
-- 全仿真行为：登录/退出 token 生命周期（7 天有效期）、订单状态机（pending→paid→shipped→completed，pending→cancelled，paid/shipped/completed→refund 分支）、`availableActions` 动态计算（含 refund）、库存预占与回补（取消/退款均回补锁库存）、幂等收藏（同商品重复收藏返回既有记录）、下单后删除本次购物车项。
+- 全仿真行为：登录/退出 token 生命周期（7 天有效期）、订单状态机（pending→paid→shipped→completed，pending→cancelled，paid/shipped/completed→refund 分支）、`availableActions` 动态计算（含 refund）、库存预占与回补（下单锁库存，取消/退款释放锁定；**mock 层未建模"支付转实扣"**，真实后端为支付实扣 + 退款回补已实扣库存，差异见 known-issues #6）、幂等收藏（同商品重复收藏返回既有记录）、下单后删除本次购物车项。
 
 ### 16.2 核对补充/澄清的口径
 
@@ -1097,7 +1099,7 @@ GET /api/after-sales/{id}
 
 - 直购接口（`preview-direct`/`direct`）不写购物车、不删除购物车项，仅做单商品核价 + 下单（§9.1 直购口径）
 
-- 库存预占/回补：`pending` 下单即预占；取消或超时未支付回补；支付成功转实扣；退款（refund）回补锁库存
+- 库存预占/结转：`pending` 下单即预占（`lock_stock += qty`）；取消或超时未支付释放锁定（`lock_stock -= qty`）；支付成功转实扣（`stock`/`lock_stock` 双扣）；退款（refund）回补已实扣库存（`stock += qty`）
 
 - `availableActions` 由服务端按状态计算返回，前端不做状态机硬编码（§9.3）
 

@@ -4,9 +4,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.common.deps import get_bearer_token
+from app.common.deps import get_bearer_token, get_current_member
 from app.core.database import get_db
 from app.core.response import ok
+from app.modules.auth.models import Member
 from app.modules.auth.schemas import LoginRequest, LoginResponse, MemberOut
 from app.modules.auth.service import login, logout
 
@@ -31,8 +32,12 @@ async def do_login(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
 @router.post("/logout")
 def do_logout(
     token: str | None = Depends(get_bearer_token),
+    _member: Member = Depends(get_current_member),
     db: Session = Depends(get_db),
 ) -> dict:
-    """退出登录 🔒：清除当前会话，旧 token 失效。"""
+    """退出登录 🔒：清除当前会话，旧 token 失效。
+
+    对齐其它 🔒 端点统一走 get_current_member：无效/过期 token → 401。
+    """
     logout(db, token)
     return ok({"loggedOut": True})

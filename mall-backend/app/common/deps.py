@@ -44,7 +44,7 @@ def get_current_member(
         raise BizException(401, "登录过期")
     member = db.get(Member, session.user_id)
     if not member or member.deleted or member.status != 1:
-        raise BizException(401, "账号异常")
+        raise BizException(401, "账号已被禁用")
     return member
 
 
