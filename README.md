@@ -21,12 +21,12 @@ shopping/
 
 ## 技术栈
 
-| 端  | 技术                                                                          |
-| -- | --------------------------------------------------------------------------- |
+| 端     | 技术                                                                          |
+| ----- | --------------------------------------------------------------------------- |
 | C 端前端 | uni-app · Vue3 · Vite · SCSS · @dcloudio/uni-ui                             |
-| 后台前端 | Vue3 · Vite · Element Plus · Vue Router · Pinia · Axios                     |
-| 后端 | Python · FastAPI · SQLAlchemy 2.0 · Alembic · MySQL 8 · PyJWT · APScheduler |
-| 质量 | pytest · ruff · mypy                                                        |
+| 后台前端  | Vue3 · Vite · Element Plus · Vue Router · Pinia · Axios                     |
+| 后端    | Python · FastAPI · SQLAlchemy 2.0 · Alembic · MySQL 8 · PyJWT · APScheduler |
+| 质量    | pytest · ruff · mypy                                                        |
 
 ## 文档索引
 
