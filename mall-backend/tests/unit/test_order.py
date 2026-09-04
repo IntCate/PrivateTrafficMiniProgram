@@ -208,6 +208,15 @@ class FakeOrderRepo:
             return order
         return None
 
+    def list_timeout_pending(self, before: datetime, limit: int = 200) -> list[SimpleNamespace]:
+        rows = [
+            o
+            for o in self.db._orders.values()
+            if o.status == "pending" and o.created_at < before
+        ]
+        rows.sort(key=lambda o: o.created_at)
+        return rows[:limit]
+
     def stats_by_user(self, user_id: int) -> dict[str, int]:
         stats = {s: 0 for s in ("pending", "paid", "shipped", "refund")}
         for o in self.db._orders.values():
@@ -610,3 +619,44 @@ def test_refund_repeat_1402(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
     with pytest.raises(BizException) as e:
         service.refund_order(db, 1, 1001)  # 已是 refund
     assert e.value.code == 1402
+
+
+# ---- B5-15 超时未支付自动关闭 ----
+
+def test_close_timeout_orders_closes_and_releases(
+    env: tuple[FakeDb, FakeCartRepo, dict],
+) -> None:
+    db, _, _ = env
+    db._skus[20].lock_stock = 1  # 模拟下单已预占 1 件
+    db._orders[1003].created_at = datetime(2026, 9, 1, 8, 0, 0)  # 超 2h
+    now = datetime(2026, 9, 1, 11, 0, 0)
+    closed = service.close_timeout_orders(db, now=now)
+    assert closed == 1
+    assert db._orders[1003].status == "cancelled"
+    assert db._orders[1003].cancel_reason == "订单超时未支付，系统自动关闭"
+    assert db._skus[20].lock_stock == 0  # 回补锁定库存
+
+
+def test_close_timeout_orders_skips_fresh(
+    env: tuple[FakeDb, FakeCartRepo, dict],
+) -> None:
+    db, _, _ = env
+    db._orders[1003].created_at = datetime(2026, 9, 1, 8, 0, 0)  # 超 2h
+    fresh = _order(1004, status="pending", items=[_order_item(904, 20)])
+    fresh.created_at = datetime(2026, 9, 1, 10, 0, 0)  # 未超 2h
+    db._orders[1004] = fresh
+    db._order_items[1004] = [_order_item(904, 20)]
+    now = datetime(2026, 9, 1, 11, 0, 0)
+    closed = service.close_timeout_orders(db, now=now)
+    assert closed == 1  # 仅关闭 1003
+    assert db._orders[1004].status == "pending"
+
+
+def test_close_timeout_orders_idempotent(
+    env: tuple[FakeDb, FakeCartRepo, dict],
+) -> None:
+    db, _, _ = env
+    db._orders[1003].created_at = datetime(2026, 9, 1, 8, 0, 0)  # 超 2h
+    now = datetime(2026, 9, 1, 11, 0, 0)
+    assert service.close_timeout_orders(db, now=now) == 1
+    assert service.close_timeout_orders(db, now=now) == 0  # 重复执行无害

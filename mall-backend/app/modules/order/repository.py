@@ -1,14 +1,31 @@
 """订单模块数据访问。"""
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, select
 
 from app.common.repository import BaseRepository
-from app.modules.order.models import STATS_STATUSES, Order, OrderItem
+from app.modules.order.models import (
+    ORDER_STATUS_PENDING,
+    STATS_STATUSES,
+    Order,
+    OrderItem,
+)
 
 
 class OrderRepository(BaseRepository[Order]):
     model = Order
+
+    def list_timeout_pending(self, before: datetime, limit: int = 200) -> list[Order]:
+        """查询超时未支付订单：status=pending 且 created_at < before（按创建时间升序）。"""
+        stmt = (
+            select(Order)
+            .where(Order.status == ORDER_STATUS_PENDING, Order.created_at < before)
+            .order_by(Order.created_at.asc())
+            .limit(limit)
+        )
+        return list(self.db.scalars(stmt))
 
     def list_by_user(
         self,

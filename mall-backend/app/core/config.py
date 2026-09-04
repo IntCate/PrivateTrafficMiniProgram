@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # 支付
     pay_mode: str = "mock"
 
+    # 订单
+    order_timeout_seconds: int = 7200
+
     @property
     def database_url(self) -> str:
         """MySQL 连接串。"""

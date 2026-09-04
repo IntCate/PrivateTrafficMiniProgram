@@ -7,17 +7,20 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.exceptions import BizException
 from app.modules.address.models import ShippingAddress
 from app.modules.auth.models import Member
 from app.modules.cart.repository import CartRepository
 from app.modules.order.models import (
+    ORDER_STATUS_CANCELLED,
+    ORDER_STATUS_PENDING,
     REFUNDABLE_STATUSES,
     STATUS_DESC,
     STATUS_TEXT,
@@ -590,3 +593,25 @@ def buy_again(db: Session, user_id: int, order_id: int) -> dict:
 def order_stats(db: Session, user_id: int) -> dict:
     """订单状态角标（对齐 api-design §9.11 / test-cases B5-5）。"""
     return OrderStatsOut(**OrderRepository(db).stats_by_user(user_id)).model_dump(by_alias=True)
+
+
+def close_timeout_orders(db: Session, *, now: datetime | None = None) -> int:
+    """关闭超时未支付订单并回补锁定库存（对齐 PRD §4.2 / api-design §16.4）。
+
+    - 扫描 status=pending 且 created_at 早于（now - 超时阈值）的订单；
+    - 逐单置 cancelled、记 cancel_reason，并回补 lock_stock（幂等：仅处理 pending）；
+    - 返回本次关闭的订单数；单次批量上限由 repository 控制，可多次调用直至返回 0。
+    """
+    now = now or datetime.now()
+    before = now - timedelta(seconds=settings.order_timeout_seconds)
+    orders = OrderRepository(db).list_timeout_pending(before)
+    if not orders:
+        return 0
+    for order in orders:
+        if order.status != ORDER_STATUS_PENDING:
+            continue
+        _release_stock(db, order)
+        order.status = ORDER_STATUS_CANCELLED
+        order.cancel_reason = "订单超时未支付，系统自动关闭"
+    db.commit()
+    return len(orders)

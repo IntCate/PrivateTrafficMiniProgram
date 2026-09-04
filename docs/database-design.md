@@ -443,7 +443,7 @@ coupon (券模板)
 
 ## 6. 数据一致性要点
 
-1. **下单扣库存**：`status=pending` 预占库存（`lock_stock += qty`）；支付成功**转实扣**（`stock -= qty` 且 `lock_stock -= qty`）；订单超时未支付（如 30 分钟）任务释放锁定（`lock_stock -= qty`）并关闭订单；退款（`refund`）**回补已实扣库存**（`stock += qty`）
+1. **下单扣库存**：`status=pending` 预占库存（`lock_stock += qty`）；支付成功**转实扣**（`stock -= qty` 且 `lock_stock -= qty`）；订单超时未支付（如 2 小时）任务释放锁定（`lock_stock -= qty`）并关闭订单；退款（`refund`）**回补已实扣库存**（`stock += qty`）
 2. **订单金额**：服务端以 `order_item.price × quantity` 汇总，禁止信任客户端上送金额
 3. **地址快照**：下单时复制地址到 `orders` 表，后续修改地址不影响历史订单
 4. **优惠券/积分**：参与金额计算时在事务内用 `SELECT ... FOR UPDATE`（MySQL 行锁）防并发超发
