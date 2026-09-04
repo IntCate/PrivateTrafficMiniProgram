@@ -360,7 +360,7 @@ coupon (券模板)
 
 ### 3.15 管理员表 `admin_user`
 
-> 管理后台（预留）：商品/订单/会员/运营位维护。
+> 管理后台（P1-④ 已实现）：商品/订单/会员/运营位维护。
 
 | 字段 | 类型 | 允许空 | 默认 | 说明 |
 | --- | --- | --- | --- | --- |
@@ -403,6 +403,7 @@ coupon (券模板)
 | config_key | VARCHAR(64) | NO | — | 配置键，唯一 |
 | config_value | TEXT | NO | — | 配置值（JSON 兼容） |
 | remark | VARCHAR(255) | YES | NULL | 说明 |
+| created_at | DATETIME | NO | 当前时间 | — |
 | updated_at | DATETIME | NO | 当前时间 | — |
 
 预留键示例：`service_hotline`（客服热线 400-800-8888）、`free_shipping_threshold`（包邮门槛）、`app_version`。

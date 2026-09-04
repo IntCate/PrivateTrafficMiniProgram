@@ -56,8 +56,8 @@ POST /admin/api/login { username, password }
 
 ### 2.2 校验与角色
 
-- 每请求先验签 + 校验 `exp` + 查 `admin_user.status`（禁用即 401）；
-- RBAC 依赖 `require_roles("admin", "operator")`，按接口声明最小角色集；无权限返回 `403`（code 1703）；
+- 每请求先验签 + 校验 `exp`（无状态，不查库）；禁用管理员后其 JWT 在有效期内仍可用，如需即时失效走登出拉黑（`jti` 黑名单，预留）；
+- RBAC 依赖 `require_roles("admin", "operator")`，按接口声明最小角色集；无权限返回 `403`（HTTP 状态码）；
 - 权限矩阵（二期后台开发前固化）：
 
 | 模块 | admin | operator | finance |

@@ -1132,7 +1132,9 @@ GET /api/after-sales/{id}
 
 ***
 
-## 13. 管理后台接口（规划）🔒
+## 13. 管理后台接口 🔒
+
+> 状态：P1-④ 已实现（登录 + JWT + RBAC，商品/分类/订单/售后/会员/运营位/优惠券/数据概览/系统配置全量接口）。
 
 鉴权：`POST /admin/api/login`（username + password → JWT），后续请求带 `Authorization: Bearer {token}`；角色：admin / operator / finance。
 
@@ -1165,6 +1167,8 @@ GET /api/after-sales/{id}
 ### P1（下个迭代）
 
 微信支付（`wechat`）、订单超时关闭任务、售后、优惠券、积分流水、管理后台全部接口。
+
+> 进度：订单超时关闭（P1-①）、优惠券+积分（P1-②）、售后工单（P1-③）、管理后台（P1-④）已实现；微信支付真实接入（P1-⑤）待办。
 
 ***
 
