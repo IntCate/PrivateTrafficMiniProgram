@@ -15,14 +15,16 @@
 shopping/
 ├── docs/                     # 需求 / 架构 / 接口 / 数据库设计 / 测试用例 / 规范
 ├── mall-backend/             # 后端（FastAPI + MySQL）
-└── mall-miniapp-uni/         # 前端（uni-app 小程序 / H5）
+├── mall-miniapp-uni/         # C 端前端（uni-app 小程序 / H5）
+└── mall-admin/               # 管理后台前端（Vue3 + Element Plus）
 ```
 
 ## 技术栈
 
 | 端  | 技术                                                                          |
 | -- | --------------------------------------------------------------------------- |
-| 前端 | uni-app · Vue3 · Vite · SCSS · @dcloudio/uni-ui                             |
+| C 端前端 | uni-app · Vue3 · Vite · SCSS · @dcloudio/uni-ui                             |
+| 后台前端 | Vue3 · Vite · Element Plus · Vue Router · Pinia · Axios                     |
 | 后端 | Python · FastAPI · SQLAlchemy 2.0 · Alembic · MySQL 8 · PyJWT · APScheduler |
 | 质量 | pytest · ruff · mypy                                                        |
 
@@ -74,6 +76,18 @@ npm run dev:h5
 
 > 前端当前使用本地全仿真 mock 数据，`src/api/config.js` 的 `useMock` 可一键切换真实后端。
 
+### 管理后台（mall-admin）
+
+```bash
+cd mall-admin
+npm install
+
+# 启动开发服务，访问 http://localhost:5174
+npm run dev
+```
+
+> 默认账号 `admin` / `Admin@123456`（种子数据见 `docs/sql/seed-backend.sql`）。开发服务已配置代理，`/admin/api/*` 转发到后端 `http://127.0.0.1:8000`。
+
 ## 当前进度
 
 - [x] 需求 / 架构 / 接口 / 数据库设计文档
@@ -82,9 +96,11 @@ npm run dev:h5
 
 - [x] 后端工程骨架（分层、迁移、auth 会员核心表）
 
-- [ ] 后端业务接口开发（P0：登录 → 首页/商品 → 购物车 → 地址 → 订单 → 收藏 → 会员中心）
+- [x] 后端业务接口开发（P0：登录 → 首页/商品 → 购物车 → 地址 → 订单 → 收藏 → 会员中心）
 
-- [ ] 前后端联调、P1 能力（真实支付、售后、优惠券、管理后台）
+- [x] P1：订单超时关闭、优惠券、积分流水、售后工单、管理后台（接口 + 可视化页面）
+
+- [ ] P1 剩余：微信支付真实接入
 
 ## 说明
 
