@@ -32,15 +32,22 @@
                 <view class="cart-top">
                   <text class="cart-name">{{ item.name }}</text>
                   <text v-if="isUnavailable(item)" class="cart-badge">已下架</text>
-                  <view v-if="!manageMode && !isUnavailable(item)" class="quantity-control">
-                    <view class="qty-btn" @click.stop="decrease(item)">-</view>
-                    <text class="qty-value">{{ item.quantity }}</text>
-                    <view class="qty-btn" @click.stop="increase(item)">+</view>
+                  <view
+                    v-if="!manageMode && !isUnavailable(item)"
+                    class="quantity-area"
+                    @click.stop="expandQty(item.id)"
+                  >
+                    <view v-if="expandedQty[item.id]" class="quantity-control">
+                      <view class="qty-btn" @click.stop="decrease(item)">-</view>
+                      <text class="qty-value">{{ item.quantity }}</text>
+                      <view class="qty-btn" @click.stop="increase(item)">+</view>
+                    </view>
+                    <view v-else class="qty-collapsed">x{{ item.quantity }}</view>
                   </view>
                 </view>
                 <view class="cart-sku" @click.stop="openSkuPanel(item)">
                   <text class="cart-sku-text">{{ item.skuText }}</text>
-                  <uni-icons type="settings-filled" size="12" color="#999" />
+                  <uni-icons type="right" size="12" color="#999" />
                 </view>
                 <text class="cart-price">¥{{ item.price }}</text>
               </view>
@@ -171,6 +178,13 @@ const allSelected = computed(() => {
 
 const manageMode = ref(false);
 const swipeActionRef = ref(null);
+
+// 记录各商品数量控件是否已展开（针对数量为 1 的折叠态）
+const expandedQty = ref({});
+
+const expandQty = (id) => {
+  expandedQty.value[id] = true;
+};
 
 const syncCart = (data) => {
   cartItems.value = data.list;
@@ -443,8 +457,10 @@ const settle = () => {
 .cart-info {
   flex: 1;
   min-width: 0;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 }
 
 .cart-top {
@@ -482,23 +498,23 @@ const settle = () => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 28px;
+  min-height: 16px;
   box-sizing: border-box;
   background-color: $mall-muted;
-  border-radius: 6px;
-  padding: 4px 10px;
-  margin-top: 8px;
+  border-radius: 4px;
+  padding: 0 8px;
 }
 
 .cart-sku-text {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 16px;
   color: $mall-muted-foreground;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-right: 8px;
+  margin-right: 6px;
 }
 
 .cart-price {
@@ -506,18 +522,31 @@ const settle = () => {
   font-weight: bold;
   color: $mall-primary;
   line-height: 24px;
-  margin-top: 8px;
+}
+
+.quantity-area {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.qty-collapsed {
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: $mall-muted-foreground;
+  background-color: $mall-muted;
 }
 
 .quantity-control {
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: 0;
   display: flex;
   align-items: center;
   border: 1px solid $mall-border;
   border-radius: 6px;
   overflow: hidden;
-  height: 24px;
+  height: 18px;
   box-sizing: border-box;
 }
 
@@ -531,7 +560,7 @@ const settle = () => {
 }
 
 .qty-btn {
-  width: 24px;
+  width: 22px;
   height: 100%;
   box-sizing: border-box;
   display: flex;
@@ -539,17 +568,17 @@ const settle = () => {
   justify-content: center;
   background-color: $mall-muted;
   color: $mall-foreground;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .qty-value {
-  width: 28px;
+  width: 26px;
   height: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   color: $mall-foreground;
   background-color: $mall-card;
 }

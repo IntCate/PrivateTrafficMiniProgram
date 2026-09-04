@@ -19,9 +19,15 @@
             </view>
           </view>
         </picker>
-        <view class="form-item">
+        <view class="form-item form-item-textarea">
           <text class="form-label">详细地址</text>
-          <textarea class="form-textarea" placeholder="街道、楼牌号等" :value="form.detail" @input="onInput('detail', $event)" />
+          <textarea
+            class="form-textarea"
+            placeholder="街道、楼牌号等"
+            placeholder-style="font-size:14px;line-height:21px;color:#8A8A8A"
+            :value="form.detail"
+            @input="onInput('detail', $event)"
+          />
         </view>
         <view class="form-item switch-item">
           <text class="form-label">设为默认地址</text>
@@ -207,16 +213,34 @@ const remove = () => {
   color: $mall-muted-foreground;
 }
 
+.form-item-textarea {
+  align-items: flex-start;
+}
+
+.form-item-textarea .form-label {
+  line-height: 21px;
+}
+
 .form-textarea {
   flex: 1;
-  height: 72px;
+  box-sizing: content-box;
+  width: 100%;
+  height: 42px;
+  margin: 0;
+  padding: 0;
   font-size: 14px;
   color: $mall-foreground;
-  line-height: 1.5;
+  line-height: 21px;
 }
 
 .switch-item {
   justify-content: space-between;
+}
+
+.switch-item .form-label {
+  width: auto;
+  flex: 1;
+  white-space: nowrap;
 }
 
 .save-btn {

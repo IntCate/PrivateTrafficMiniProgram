@@ -535,31 +535,31 @@ const goBack = () => {
   border-radius: 6px;
   overflow: hidden;
   box-sizing: border-box;
-  height: 24px;
+  height: 18px;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .qty-btn {
-  width: 24px;
-  height: 22px;
+  width: 22px;
+  height: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: $mall-muted;
   color: $mall-foreground;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .qty-value {
-  width: 28px;
-  height: 22px;
+  width: 26px;
+  height: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   color: $mall-foreground;
   background-color: $mall-card;
 }
