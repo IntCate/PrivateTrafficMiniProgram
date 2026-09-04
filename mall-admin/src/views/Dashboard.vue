@@ -17,11 +17,11 @@ const cards = ref([])
 async function load() {
   summary.value = await getDashboardSummary()
   cards.value = [
-    { label: '累计销售额', value: summary.value.total_sales, prefix: '¥', color: '#0d9488', bg: 'linear-gradient(135deg, #0d9488, #14b8a6)', icon: Money },
-    { label: '订单总数', value: summary.value.order_count, color: '#3b82f6', bg: 'linear-gradient(135deg, #3b82f6, #60a5fa)', icon: List },
-    { label: '会员总数', value: summary.value.member_count, color: '#f59e0b', bg: 'linear-gradient(135deg, #f59e0b, #fbbf24)', icon: User },
-    { label: '商品总数', value: summary.value.product_count, color: '#8b5cf6', bg: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', icon: Goods },
-    { label: '待处理订单', value: summary.value.pending_order_count, color: '#ef4444', bg: 'linear-gradient(135deg, #ef4444, #f87171)', icon: Clock },
+    { label: '累计销售额', value: summary.value.total_sales, prefix: '¥', bg: 'linear-gradient(135deg, #0f172a, #334155)', icon: Money },
+    { label: '订单总数', value: summary.value.order_count, bg: 'linear-gradient(135deg, #1e293b, #475569)', icon: List },
+    { label: '会员总数', value: summary.value.member_count, bg: 'linear-gradient(135deg, #334155, #64748b)', icon: User },
+    { label: '商品总数', value: summary.value.product_count, bg: 'linear-gradient(135deg, #475569, #94a3b8)', icon: Goods },
+    { label: '待处理订单', value: summary.value.pending_order_count, bg: 'linear-gradient(135deg, #020617, #1e293b)', icon: Clock },
   ]
 }
 

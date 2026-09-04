@@ -47,7 +47,7 @@ const roleText = computed(() => {
 })
 
 const roleColor = computed(() => {
-  const map = { admin: '#0d9488', operator: '#f59e0b', finance: '#6366f1' }
+  const map = { admin: '#0f172a', operator: '#475569', finance: '#64748b' }
   return map[role.value] || '#64748b'
 })
 

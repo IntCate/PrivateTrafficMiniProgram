@@ -1,23 +1,23 @@
 /* ===== 设计 Token（全站统一视觉语言） ===== */
 :root {
-  /* 主色：青绿（非蓝紫，沉稳高级） */
-  --primary: #0d9488;
-  --primary-hover: #0f766e;
-  --primary-active: #115e59;
-  --primary-light: #14b8a6;
-  --primary-bg: rgba(13, 148, 136, 0.08);
+  /* 主色：深石板灰（中性克制，无蓝绿橙紫） */
+  --primary: #1e293b;
+  --primary-hover: #0f172a;
+  --primary-active: #020617;
+  --primary-light: #475569;
+  --primary-bg: rgba(30, 41, 59, 0.06);
 
-  /* 状态色 */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  /* 状态色（低饱和中性系） */
+  --success: #475569;
+  --warning: #64748b;
+  --danger: #7f1d1d;
   --info: #64748b;
 
   /* 布局 */
-  --sidebar-bg: #1e293b;
-  --sidebar-hover: #334155;
-  --sidebar-active-bg: rgba(13, 148, 136, 0.15);
-  --sidebar-active-text: #14b8a6;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-text: #ffffff;
   --header-bg: #ffffff;
   --main-bg: #f1f5f9;
 
@@ -42,11 +42,11 @@
 
   /* Element Plus 主色覆盖（让所有组件统一主色） */
   --el-color-primary: var(--primary);
-  --el-color-primary-light-3: #5eead4;
-  --el-color-primary-light-5: #99f6e4;
-  --el-color-primary-light-7: #ccfbf1;
-  --el-color-primary-light-8: #e6fffb;
-  --el-color-primary-light-9: #f0fdfa;
+  --el-color-primary-light-3: #475569;
+  --el-color-primary-light-5: #64748b;
+  --el-color-primary-light-7: #cbd5e1;
+  --el-color-primary-light-8: #e2e8f0;
+  --el-color-primary-light-9: #f1f5f9;
   --el-color-primary-dark-2: var(--primary-active);
   --el-border-radius-base: 8px;
   --el-font-size-base: 14px;
@@ -159,6 +159,35 @@ body {
   height: 24px !important;
   line-height: 22px !important;
   font-weight: 500;
+}
+
+/* 标签色系统一为中性灰阶（避免蓝绿橙紫），danger 保留低饱和警示 */
+.el-tag--success {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+.el-tag--warning {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+.el-tag--info {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+.el-tag--danger {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+
+/* 深色 el-tag（启用/上架状态用深灰实心） */
+.el-tag.el-tag--success.is-dark {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #fff !important;
 }
 
 .el-pagination {

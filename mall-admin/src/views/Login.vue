@@ -106,7 +106,7 @@ async function handleLogin() {
 /* 左侧品牌区 */
 .brand-panel {
   width: 45%;
-  background: linear-gradient(160deg, #134e4a 0%, #0f766e 50%, #115e59 100%);
+  background: linear-gradient(160deg, #020617 0%, #1e293b 50%, #334155 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -186,7 +186,7 @@ async function handleLogin() {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #5eead4;
+  background: #cbd5e1;
 }
 .brand-footer {
   position: relative;
@@ -229,10 +229,10 @@ async function handleLogin() {
   margin-top: 8px;
   background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
   border: none !important;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
 }
 .submit-btn:hover {
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
   transform: translateY(-1px);
 }
 .form-tip {
