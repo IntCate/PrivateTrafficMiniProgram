@@ -340,7 +340,7 @@ coupon (券模板)
 
 ### 3.14 售后单表 `after_sale`
 
-> 订单存在 `refund`（售后）状态，前端"售后/退款"tab 已预留，本表为完整售后工单扩展。当前 P0 的 `POST /api/orders/{id}/refund`（api-design §9.7）为轻量级订单级退款，直接在 `orders` 表记录 `refund_reason`/`refund_type`/`refund_time` 并置状态为 `refund`；后续 P1 售后工单（审核/退货物流/退款金额）落本表，与 `orders` 表 1:N 关联。
+> 订单存在 `refund`（售后）状态，前端"售后/退款"tab 已预留，本表为完整售后工单扩展。P0 的 `POST /api/orders/{id}/refund`（api-design §9.7）为轻量级订单级退款，直接在 `orders` 表记录 `refund_reason`/`refund_type`/`refund_time` 并置状态为 `refund`；P1-③ 已实现完整售后工单（申请/列表/详情，审核在管理后台 P1-④），落本表，与 `orders` 表 1:N 关联。
 
 | 字段 | 类型 | 允许空 | 默认 | 说明 |
 | --- | --- | --- | --- | --- |

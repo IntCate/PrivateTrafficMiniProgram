@@ -114,7 +114,7 @@ Authorization: Bearer {token}
 | 订单   | `POST/GET /api/orders*`               | 结算预览、下单、查询与操作 🔒      | §9  |
 | 收藏   | `GET/POST/DELETE /api/favorites*`     | 收藏管理 🔒               | §10 |
 | 会员   | `GET/PUT /api/member/*`               | 个人中心聚合、资料更新、优惠券、积分 🔒 | §11 |
-| 售后   | `POST/GET /api/after-sales*`          | 售后申请（预留）🔒            | §12 |
+| 售后   | `POST/GET /api/after-sales*`          | 售后工单申请/列表/详情 🔒       | §12 |
 | 管理后台 | `/admin/api/*`                        | 商品/订单/会员/运营位管理（独立鉴权）  | §13 |
 
 ***
@@ -812,7 +812,7 @@ POST /api/orders/{id}/refund
 
 - 售后完成后仅保留 `buyAgain` 动作；售后角标（`orderStats.refund`）同步 +1
 
-- 完整售后工单（审核/退货物流/退款金额）为 P1 预留，见 §12
+- 完整售后工单（申请/列表/详情）已在 P1-③ 实现，见 §12；审核/退货物流/退款金额在管理后台（P1-④）
 
 ### 9.8 提醒发货
 
@@ -1068,7 +1068,7 @@ GET /api/points-logs?page=1&pageSize=20
 
 ***
 
-## 12. 售后接口 🔒（预留，首版可不实现）
+## 12. 售后接口 🔒
 
 ### 12.1 申请售后
 
@@ -1083,16 +1083,52 @@ POST /api/after-sales
   "orderId": 10001,
   "type": "refund",
   "reason": "商品破损",
+  "amount": 0,
   "images": ["https://..."]
 }
 ```
 
-### 12.2 售后单列表/详情（预留）
+- `type`：refund 仅退款 / return 退货退款；`amount` 可选，0 时服务端取订单实付金额（不信任客户端）
+
+响应 `data`：
+
+```json
+{
+  "id": 1,
+  "orderId": 10001,
+  "type": "refund",
+  "reason": "商品破损",
+  "amount": 100.00,
+  "status": "applying",
+  "statusText": "申请中",
+  "images": ["https://..."],
+  "auditRemark": null,
+  "createTime": "2026-09-01 10:00:00"
+}
+```
+
+业务规则：
+
+- 订单不存在 → `404`；非本人 → `1403`
+
+- 订单状态非 paid/shipped/completed → `1402`
+
+- 同一订单已有 applying/approved 售后单 → `1606`（重复申请）
+
+- 申请成功生成 `applying` 售后单，与 `orders` 表 1:N 关联
+
+### 12.2 售后单列表/详情
 
 ```
 GET /api/after-sales?status=applying
 GET /api/after-sales/{id}
 ```
+
+- 列表支持 `status` 筛选（applying/approved/rejected/refunded/closed）+ 分页
+
+- 详情：不存在 → `404`；非本人 → `1403`
+
+- `statusText` 映射：applying 申请中 / approved 已通过 / rejected 已驳回 / refunded 已退款 / closed 已关闭
 
 ***
 
