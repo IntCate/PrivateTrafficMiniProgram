@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BizException
 from app.modules.auth.models import Member
+from app.modules.coupon.repository import UserCouponRepository
 from app.modules.member.schemas import (
     MemberOut,
     MemberOverviewOut,
@@ -27,13 +28,10 @@ NICKNAME_MAX = 20
 
 
 def get_overview(db: Session, member: Member) -> MemberOverviewOut:
-    """我的页聚合：会员信息 + 订单状态角标（对齐 api-design §11.1）。
-
-    couponCount：优惠券模块未上线（预留），恒为 0。
-    """
+    """我的页聚合：会员信息 + 订单状态角标（对齐 api-design §11.1）。"""
     counts: dict[str, int] = OrderRepository(db).stats_by_user(member.id)
     return MemberOverviewOut(
-        member=_member_out(member),
+        member=_member_out(db, member),
         order_stats=OrderStatsOut(**counts),
     )
 
@@ -59,7 +57,7 @@ def update_profile(
     return ProfileOut(nickname=member.nickname or "", avatar=member.avatar or "")
 
 
-def _member_out(member: Member) -> MemberOut:
+def _member_out(db: Session, member: Member) -> MemberOut:
     return MemberOut(
         id=member.id,
         nickname=member.nickname or "",
@@ -67,7 +65,7 @@ def _member_out(member: Member) -> MemberOut:
         member_level=member.member_level,
         member_level_text=MEMBER_LEVEL_TEXT.get(member.member_level, ""),
         points=member.points or 0,
-        coupon_count=0,
+        coupon_count=UserCouponRepository(db).count_unused(member.id),
     )
 
 

@@ -242,7 +242,7 @@ api.py(路由) → service.py(业务) → repository.py(数据) → models.py(OR
 | address         | 增删改查 + 默认地址                           | api-design §8             |
 | order           | 结算预览、下单(锁库存)/支付(mock→wechat)/取消/收货/查询 | api-design §9             |
 | favorite        | 收藏增删查                                 | api-design §10            |
-| coupon / points | 券领取核销、积分流水（P1）                        | api-design §11.3/§11.4 预留 |
+| coupon / points | 券领取核销、积分流水（P1）                        | api-design §11.3/§11.4 |
 | after\_sale     | 申请售后、售后单查询（P1）                        | api-design §12 预留         |
 | admin           | 后台全模块管理（P1）                           | api-design §13            |
 

@@ -80,6 +80,8 @@ def create_order_endpoint(
             member.id,
             body.address_id,
             [{"sku_id": i.sku_id, "quantity": i.quantity} for i in body.items],
+            body.user_coupon_id,
+            body.points_used,
         )
     )
 

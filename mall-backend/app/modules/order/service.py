@@ -18,6 +18,12 @@ from app.core.exceptions import BizException
 from app.modules.address.models import ShippingAddress
 from app.modules.auth.models import Member
 from app.modules.cart.repository import CartRepository
+from app.modules.coupon.models import (
+    COUPON_TYPE_CASH,
+    COUPON_TYPE_DISCOUNT,
+    Coupon,
+    UserCoupon,
+)
 from app.modules.order.models import (
     ORDER_STATUS_CANCELLED,
     ORDER_STATUS_PENDING,
@@ -38,12 +44,21 @@ from app.modules.order.schemas import (
     ReceiverOut,
     UnavailableItem,
 )
+from app.modules.points.models import (
+    POINTS_BIZ_ORDER,
+    POINTS_TYPE_CONSUME,
+    POINTS_TYPE_EARN,
+    PointsLog,
+)
 from app.modules.product.models import Product, ProductSku
 
 logger = logging.getLogger("app.modules.order.service")
 
 # 单次限购上限（对齐 error-code 1201）
 ORDER_QUANTITY_MAX = 99
+
+# 积分抵扣比例：每 POINTS_PER_YUAN 积分抵 1 元（对齐 PRD §4.x）
+POINTS_PER_YUAN = 100
 
 _DT_FMT = "%Y-%m-%d %H:%M:%S"
 
@@ -88,13 +103,37 @@ def _get_saleable_sku(db: Session, sku_id: int) -> tuple[Product, ProductSku]:
     return product, sku
 
 
-def _calc_amounts(product_items: list[dict]) -> dict[str, Decimal]:
-    """金额计算：商品总额 + 免邮（P0 统一包邮，对齐 mock calcOrderAmounts）。"""
+def _calc_amounts(
+    product_items: list[dict],
+    coupon: Coupon | None = None,
+    points_used: int = 0,
+) -> dict[str, Decimal]:
+    """金额计算：商品总额 + 免邮 + 券/积分抵扣（对齐 mock calcOrderAmounts）。
+
+    - 无券/无积分时行为与 P0 一致（payAmount == totalAmount）；
+    - cash 满减：抵扣 amount；discount 折扣：按折扣率减免；
+    - 积分抵扣：POINTS_PER_YUAN 积分抵 1 元，不超剩余应付。
+    """
     total = sum((Decimal(str(p["price"])) * p["quantity"] for p in product_items), Decimal("0.00"))
+    coupon_amount = Decimal("0.00")
+    if coupon is not None:
+        if coupon.type == COUPON_TYPE_CASH:
+            coupon_amount = min(coupon.amount or Decimal("0.00"), total)
+        elif coupon.type == COUPON_TYPE_DISCOUNT:
+            discount = coupon.discount or Decimal("1.00")
+            coupon_amount = total - (total * discount)
+    points_amount = Decimal("0.00")
+    if points_used > 0:
+        points_amount = min(
+            Decimal(points_used) / POINTS_PER_YUAN, total - coupon_amount
+        )
+    pay_amount = total - coupon_amount - points_amount
     return {
         "totalAmount": total,
         "freight": Decimal("0.00"),
-        "payAmount": total,
+        "couponAmount": coupon_amount,
+        "pointsAmount": points_amount,
+        "payAmount": pay_amount,
     }
 
 
@@ -189,20 +228,87 @@ def _restore_stock(db: Session, order: Order) -> None:
             sku.stock += item.quantity
 
 
+def _resolve_coupon(
+    db: Session,
+    user_id: int,
+    user_coupon_id: int | None,
+    product_items: list[dict],
+) -> Coupon | None:
+    """校验并加载待核销优惠券（对齐 error-code 1601/1603/1604）。
+
+    - 未传 userCouponId → 返回 None（不抵扣）；
+    - 用户券不存在/非本人/非 unused → 1601；
+    - 券停用/未到生效期/已过期 → 1603；
+    - 不满足使用门槛 → 1604。
+    """
+    if user_coupon_id is None:
+        return None
+    uc = db.get(UserCoupon, user_coupon_id)
+    if uc is None or uc.user_id != user_id or uc.status != "unused":
+        raise BizException(1601, "优惠券不存在")
+    coupon = db.get(Coupon, uc.coupon_id)
+    if coupon is None or coupon.status != 1:
+        raise BizException(1603, "优惠券已过期或未到生效期")
+    now = datetime.now()
+    if coupon.valid_start and now < coupon.valid_start:
+        raise BizException(1603, "优惠券已过期或未到生效期")
+    if coupon.valid_end and now > coupon.valid_end:
+        raise BizException(1603, "优惠券已过期或未到生效期")
+    total = sum(
+        (Decimal(str(p["price"])) * p["quantity"] for p in product_items), Decimal("0.00")
+    )
+    if total < coupon.min_amount:
+        raise BizException(1604, "不满足使用门槛")
+    return coupon
+
+
+def _consume_points(db: Session, user_id: int, points_used: int) -> None:
+    """校验并扣减积分（对齐 error-code 1605）。积分不足 → 1605。"""
+    if points_used <= 0:
+        return
+    member = db.get(Member, user_id)
+    if member is None or (member.points or 0) < points_used:
+        raise BizException(1605, "积分不足")
+    member.points = (member.points or 0) - points_used
+    db.add(
+        PointsLog(
+            user_id=user_id,
+            change=-points_used,
+            balance=member.points,
+            type=POINTS_TYPE_CONSUME,
+            biz_type=POINTS_BIZ_ORDER,
+            remark="订单积分抵扣",
+        )
+    )
+
+
+def _mark_coupon_used(db: Session, user_id: int, user_coupon_id: int, order_no: str) -> None:
+    """核销用户券：置 used、记订单号与使用时间。"""
+    uc = db.get(UserCoupon, user_coupon_id)
+    if uc is not None and uc.user_id == user_id and uc.status == "unused":
+        uc.status = "used"
+        uc.used_order_no = order_no
+        uc.used_at = datetime.now()
+
+
 def _build_order(
     db: Session,
     user_id: int,
     address: ShippingAddress,
     product_items: list[dict],
+    coupon: Coupon | None = None,
+    points_used: int = 0,
 ) -> Order:
     """创建订单主表 + 明细（快照），挂载到 Session（由调用方 commit）。"""
-    amounts = _calc_amounts(product_items)
+    amounts = _calc_amounts(product_items, coupon, points_used)
     order = Order(
         order_no=_gen_order_no(datetime.now()),
         user_id=user_id,
         status="pending",
         total_amount=amounts["totalAmount"],
         freight=amounts["freight"],
+        coupon_amount=amounts["couponAmount"],
+        points_used=int(amounts["pointsAmount"] * POINTS_PER_YUAN),
         pay_amount=amounts["payAmount"],
         receiver_name=address.name,
         receiver_phone=address.phone,
@@ -271,6 +377,8 @@ def _list_item_dto(order: Order, items: list[OrderItem]) -> dict:
         status_text=STATUS_TEXT.get(order.status, order.status),
         total_amount=float(order.total_amount),
         freight=float(order.freight),
+        coupon_amount=float(order.coupon_amount),
+        points_used=order.points_used,
         pay_amount=float(order.pay_amount),
         receiver=_receiver_dto(order),
         items=_order_item_dtos(items),
@@ -372,6 +480,8 @@ def preview_order(db: Session, user_id: int, cart_item_ids: str | None = None) -
         items=preview_items,
         total_amount=float(amounts["totalAmount"]),
         freight=float(amounts["freight"]),
+        coupon_amount=float(amounts["couponAmount"]),
+        points_amount=float(amounts["pointsAmount"]),
         pay_amount=float(amounts["payAmount"]),
         addresses=_list_addresses_for_preview(db, user_id),
     ).model_dump(by_alias=True)
@@ -397,6 +507,8 @@ def preview_direct_order(db: Session, user_id: int, sku_id: int, quantity: int) 
         items=[item],
         total_amount=float(amounts["totalAmount"]),
         freight=float(amounts["freight"]),
+        coupon_amount=float(amounts["couponAmount"]),
+        points_amount=float(amounts["pointsAmount"]),
         pay_amount=float(amounts["payAmount"]),
         addresses=_list_addresses_for_preview(db, user_id),
     ).model_dump(by_alias=True)
@@ -423,10 +535,16 @@ def _build_product_items(db: Session, skus_qty: list[tuple[int, int]]) -> list[d
 
 
 def create_order(
-    db: Session, user_id: int, address_id: int, items: list[dict]
+    db: Session,
+    user_id: int,
+    address_id: int,
+    items: list[dict],
+    user_coupon_id: int | None = None,
+    points_used: int = 0,
 ) -> dict:
     """创建订单（对齐 api-design §9.2 / test-cases B5-4）。
     同一事务：订单+明细+地址快照+库存预占+删除购物车项；金额服务端核算（不信任客户端）。
+    可选：核销优惠券（userCouponId）、积分抵扣（pointsUsed）。
     """
     if not items:
         raise BizException(400, "订单商品不能为空")
@@ -434,9 +552,14 @@ def create_order(
     product_items = _build_product_items(db, [(i["sku_id"], i["quantity"]) for i in items])
     sku_ids = [p["sku_id"] for p in product_items]
 
+    coupon = _resolve_coupon(db, user_id, user_coupon_id, product_items)
+    _consume_points(db, user_id, points_used)
+
     _preoccupy_stock(db, product_items)
     _remove_cart_items(db, user_id, sku_ids)
-    order = _build_order(db, user_id, address, product_items)
+    order = _build_order(db, user_id, address, product_items, coupon, points_used)
+    if coupon is not None and user_coupon_id is not None:
+        _mark_coupon_used(db, user_id, user_coupon_id, order.order_no)
     db.commit()
     return _detail_dto(order, _order_items(db, order))
 
@@ -569,7 +692,18 @@ def confirm_order(db: Session, user_id: int, order_id: int) -> dict:
     order.finish_time = datetime.now()
     member = db.get(Member, user_id)
     if member is not None:
-        member.points += int(order.pay_amount)
+        earned = int(order.pay_amount)
+        member.points = (member.points or 0) + earned
+        db.add(
+            PointsLog(
+                user_id=user_id,
+                change=earned,
+                balance=member.points,
+                type=POINTS_TYPE_EARN,
+                biz_type=POINTS_BIZ_ORDER,
+                remark="订单完成获得积分",
+            )
+        )
     db.commit()
     return _detail_dto(order, _order_items(db, order))
 

@@ -615,9 +615,15 @@ POST /api/orders
   "items": [
     { "skuId": 10, "quantity": 1 },
     { "skuId": 12, "quantity": 2 }
-  ]
+  ],
+  "userCouponId": 100,
+  "pointsUsed": 100
 }
 ```
+
+- `userCouponId`（可选）：核销的用户券 ID；`pointsUsed`（可选）：积分抵扣数量（100 积分抵 1 元）
+
+- 券/积分抵扣金额**由服务端核算**（不信任客户端），见下方业务规则
 
 响应 `data`：
 
@@ -638,7 +644,9 @@ POST /api/orders
   ],
   "totalAmount": 299.00,
   "freight": 0.00,
-  "payAmount": 299.00,
+  "couponAmount": 20.00,
+  "pointsUsed": 100,
+  "payAmount": 278.00,
   "receiver": { "name": "王小悦", "phone": "13812345678", "regionText": "上海市 上海市 浦东新区", "detail": "张江…501 室" }
 }
 ```
@@ -652,6 +660,8 @@ POST /api/orders
 - 下单成功即删除本次订单涉及的购物车项（幂等；`order-confirm.vue` 本地清理 `mall-checkout-items` 与后端行为一致，前端购物车页无需额外处理）
 
 - 缺货返回 `1104` 并带上 `{ skuId, availableStock }`
+
+- 券/积分抵扣：`userCouponId` 校验（券不存在/非本人/非 unused → `1601`；停用/未生效/过期 → `1603`；不满足门槛 → `1604`）；`pointsUsed` 校验（积分不足 → `1605`）；核销券置 `used`、扣减积分并写 `points_log`（consume）
 
 ### 9.3 订单列表
 
@@ -678,6 +688,9 @@ Query 参数：
       "status": "pending",
       "statusText": "待付款",
       "totalAmount": 299.00,
+      "freight": 0.00,
+      "couponAmount": 0.00,
+      "pointsUsed": 0,
       "payAmount": 299.00,
       "createTime": "2026-08-31 09:15:12",
       "items": [
@@ -817,7 +830,7 @@ POST /api/orders/{id}/remind
 POST /api/orders/{id}/confirm
 ```
 
-- 仅 `shipped` 可调用；置 `completed`、记 `finish_time`，发放积分（预留）
+- 仅 `shipped` 可调用；置 `completed`、记 `finish_time`，发放积分（按实付金额取整）并写 `points_log`（earn）
 
 ### 9.10 再次购买
 
@@ -887,6 +900,7 @@ POST /api/favorites/{productId}
 ```
 
 - `existed`：本次收藏前是否已存在（重复收藏为 `true`，不新增记录）
+
 - 商品不存在：`404`；商品已下架：`1102`「商品已下架」（对应 test-cases B6-2）
 
 ### 10.3 取消收藏
@@ -928,6 +942,8 @@ GET /api/member/overview
 }
 ```
 
+- `couponCount`：当前用户**未使用**优惠券数量（真实统计，非恒 0）
+
 ### 11.2 会员资料更新（P0，对应 PRD §3.1 一期"头像昵称完善"）
 
 ```
@@ -951,7 +967,7 @@ PUT /api/member/profile
 
 业务规则（对应 PRD §4.9 合规规则，P0 口径）：
 
-- 头像：**P0 校验 `http(s)` URL 即可**（无上传接口，微信登录头像为第三方 CDN 域名）；自有存储域白名单校验（先走上传接口）随上传接口上线后收紧，见 `docs/known-issues.md` 条目
+- 头像：**P0 校验** **`http(s)`** **URL 即可**（无上传接口，微信登录头像为第三方 CDN 域名）；自有存储域白名单校验（先走上传接口）随上传接口上线后收紧，见 `docs/known-issues.md` 条目
 
 - 昵称：长度 1-20 字返回 `1003`；敏感词过滤 P0 暂无词库暂不启用（见 `docs/known-issues.md` 条目）
 
@@ -959,17 +975,96 @@ PUT /api/member/profile
 
 ***
 
-### 11.3 优惠券列表（预留）
+### 11.3 优惠券列表
 
 ```
-GET /api/member/coupons?status=unused
+GET /api/coupons?status=unused
 ```
 
-### 11.4 积分明细（预留）
+Query 参数：
+
+| 参数       | 类型     | 必填 | 说明                                       |
+| -------- | ------ | -- | ---------------------------------------- |
+| status   | string | 否  | 空=全部；unused 未使用 / used 已使用 / expired 已过期 |
+| page     | int    | 否  | 默认 1                                     |
+| pageSize | int    | 否  | 默认 10                                    |
+
+响应 `data`：
+
+```json
+{
+  "list": [
+    {
+      "id": 100,
+      "couponId": 1,
+      "name": "满100减20",
+      "type": "cash",
+      "amount": 20.00,
+      "discount": null,
+      "minAmount": 100.00,
+      "status": "unused",
+      "validStart": "2026-09-01 00:00:00",
+      "validEnd": "2026-12-31 23:59:59"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 10,
+  "hasMore": false
+}
+```
+
+- `type`：cash 满减 / discount 折扣 / shipping 免运费；`amount` 满减金额（cash 用）、`discount` 折扣率（discount 用）
+
+### 11.3a 领取优惠券
 
 ```
-GET /api/member/points-logs?page=1&pageSize=20
+POST /api/coupons/{couponId}/receive
 ```
+
+响应 `data`：
+
+```json
+{ "userCouponId": 100, "existed": false }
+```
+
+业务规则：
+
+- 券不存在 → `1601`；已领取 → `1602`（幂等返回 `existed=true`）
+
+- 券停用/未到生效期/已过期/已领完 → `1603`
+
+- 领取成功 `received_count + 1`，生成 `unused` 用户券
+
+### 11.4 积分明细
+
+```
+GET /api/points-logs?page=1&pageSize=20
+```
+
+响应 `data`：
+
+```json
+{
+  "list": [
+    {
+      "id": 1,
+      "change": 100,
+      "balance": 100,
+      "type": "earn",
+      "bizType": "order",
+      "remark": "订单完成获得积分",
+      "createdAt": "2026-09-01 10:00:00"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20,
+  "hasMore": false
+}
+```
+
+- `type`：earn 获得 / consume 消费 / refund 退回；`bizType`：order/promotion/admin
 
 ***
 

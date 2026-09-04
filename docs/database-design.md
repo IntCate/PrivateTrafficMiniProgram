@@ -214,8 +214,8 @@ coupon (券模板)
 | total_amount | DECIMAL(10,2) | NO | 0 | 商品总金额（快照 sum） |
 | freight | DECIMAL(10,2) | NO | 0 | 运费（当前前端固定 0） |
 | pay_amount | DECIMAL(10,2) | NO | 0 | 实付金额 |
-| coupon_amount | DECIMAL(10,2) | NO | 0 | 优惠券抵扣（预留，当前 0） |
-| points_used | INT UNSIGNED | NO | 0 | 积分抵扣（预留） |
+| coupon_amount | DECIMAL(10,2) | NO | 0 | 优惠券抵扣（P1 已实现，下单核销券时写入） |
+| points_used | INT UNSIGNED | NO | 0 | 积分抵扣（P1 已实现，下单抵扣时写入） |
 | receiver_name | VARCHAR(32) | NO | — | 收货人快照 |
 | receiver_phone | VARCHAR(20) | NO | — | 收货电话快照 |
 | receiver_region | VARCHAR(128) | NO | — | 省市区快照，如 `上海市 上海市 浦东新区` |
@@ -271,7 +271,7 @@ coupon (券模板)
 
 ### 3.10 优惠券模板表 `coupon`
 
-> 前端"我的页/首页优惠券 5 张"为静态展示，本表与 3.11 为功能预留。
+> P1 已实现：券模板 + 用户券领取/核销（见 §3.11），前端"我的页/首页优惠券"可对接真实数据。
 
 | 字段 | 类型 | 允许空 | 默认 | 说明 |
 | --- | --- | --- | --- | --- |

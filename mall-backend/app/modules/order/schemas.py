@@ -37,6 +37,8 @@ class PreviewOut(CamelModel):
     items: list[PreviewItemOut]
     total_amount: float
     freight: float
+    coupon_amount: float = 0.0
+    points_amount: float = 0.0
     pay_amount: float
     addresses: list[PreviewAddressOut]
 
@@ -80,6 +82,8 @@ class OrderListItemOut(CamelModel):
     status_text: str
     total_amount: float
     freight: float
+    coupon_amount: float = 0.0
+    points_used: int = 0
     pay_amount: float
     receiver: ReceiverOut
     items: list[OrderItemOut]
@@ -131,6 +135,8 @@ class CreateOrderRequest(CamelRequest):
 
     address_id: int
     items: list[CreateOrderItemRequest]
+    user_coupon_id: int | None = None
+    points_used: int = 0
 
 
 class CreateDirectOrderRequest(CamelRequest):

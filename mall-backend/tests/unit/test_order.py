@@ -12,8 +12,10 @@ import pytest
 
 from app.core.exceptions import BizException
 from app.modules.auth.models import Member
+from app.modules.coupon.models import Coupon, UserCoupon
 from app.modules.order import service
 from app.modules.order.models import Order, OrderItem
+from app.modules.points.models import PointsLog
 from app.modules.product.models import Product, ProductSku
 
 
@@ -119,6 +121,8 @@ def _order(
         status=status,
         total_amount=Decimal(pay_amount),
         freight=Decimal("0.00"),
+        coupon_amount=Decimal("0.00"),
+        points_used=0,
         pay_amount=Decimal(pay_amount),
         receiver_name="王小悦",
         receiver_phone="13812345678",
@@ -144,12 +148,17 @@ class FakeDb:
         orders: dict[int, SimpleNamespace] | None = None,
         order_items: dict[int, list[SimpleNamespace]] | None = None,
         member: SimpleNamespace | None = None,
+        coupons: dict[int, SimpleNamespace] | None = None,
+        user_coupons: dict[int, SimpleNamespace] | None = None,
     ) -> None:
         self._skus = skus
         self._products = products
         self._member = member
         self._orders: dict[int, SimpleNamespace] = orders or {}
         self._order_items: dict[int, list] = order_items or {}
+        self._coupons: dict[int, SimpleNamespace] = coupons or {}
+        self._user_coupons: dict[int, SimpleNamespace] = user_coupons or {}
+        self._points_logs: list[SimpleNamespace] = []
         self._pending: list[object] = []
         self._next_order_id = 100
         self._next_item_id = 900
@@ -164,10 +173,17 @@ class FakeDb:
             return self._member
         if model is Order:
             return self._orders.get(pk)
+        if model is Coupon:
+            return self._coupons.get(pk)
+        if model is UserCoupon:
+            return self._user_coupons.get(pk)
         return None
 
     def add(self, obj: object) -> None:
-        self._pending.append(obj)
+        if isinstance(obj, PointsLog):
+            self._points_logs.append(obj)
+        else:
+            self._pending.append(obj)
 
     def flush(self) -> None:
         for obj in self._pending:
@@ -180,6 +196,8 @@ class FakeDb:
                 obj.id = self._next_item_id
                 self._next_item_id += 1
                 self._order_items.setdefault(obj.order_id, []).append(obj)
+            elif isinstance(obj, PointsLog):
+                self._points_logs.append(obj)
         self._pending = []
 
     def commit(self) -> None:
@@ -660,3 +678,101 @@ def test_close_timeout_orders_idempotent(
     now = datetime(2026, 9, 1, 11, 0, 0)
     assert service.close_timeout_orders(db, now=now) == 1
     assert service.close_timeout_orders(db, now=now) == 0  # 重复执行无害
+
+
+# ---- B5-4a 优惠券/积分抵扣下单 ----
+
+def _coupon(
+    id: int,
+    *,
+    type: str = "cash",
+    amount: str = "20.00",
+    discount: str | None = None,
+    min_amount: str = "0.00",
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=id,
+        type=type,
+        amount=Decimal(amount),
+        discount=Decimal(discount) if discount else None,
+        min_amount=Decimal(min_amount),
+        status=1,
+        valid_start=None,
+        valid_end=None,
+    )
+
+
+def _user_coupon(
+    id: int, *, user_id: int = 1, coupon_id: int = 1, status: str = "unused"
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=id,
+        user_id=user_id,
+        coupon_id=coupon_id,
+        status=status,
+        used_order_no=None,
+        used_at=None,
+    )
+
+
+def test_create_order_with_coupon(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    db._coupons[1] = _coupon(1, amount="20.00")
+    db._user_coupons[100] = _user_coupon(100, coupon_id=1)
+    items = [{"sku_id": 10, "quantity": 1}]  # 100 元
+    data = service.create_order(db, 1, 1, items, user_coupon_id=100)
+    assert data["payAmount"] == 80.0
+    assert data["couponAmount"] == 20.0
+    assert db._user_coupons[100].status == "used"
+    assert db._user_coupons[100].used_order_no == data["orderNo"]
+
+
+def test_create_order_coupon_not_found(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    items = [{"sku_id": 10, "quantity": 1}]
+    with pytest.raises(BizException) as e:
+        service.create_order(db, 1, 1, items, user_coupon_id=999)
+    assert e.value.code == 1601
+
+
+def test_create_order_coupon_min_amount(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    db._coupons[1] = _coupon(1, amount="20.00", min_amount="200.00")
+    db._user_coupons[100] = _user_coupon(100, coupon_id=1)
+    items = [{"sku_id": 10, "quantity": 1}]  # 100 元 < 门槛 200
+    with pytest.raises(BizException) as e:
+        service.create_order(db, 1, 1, items, user_coupon_id=100)
+    assert e.value.code == 1604
+
+
+def test_create_order_with_points(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    db._member = SimpleNamespace(id=1, points=500)
+    items = [{"sku_id": 10, "quantity": 1}]  # 100 元
+    data = service.create_order(db, 1, 1, items, points_used=100)  # 100 积分抵 1 元
+    assert data["payAmount"] == 99.0
+    assert db._member.points == 400
+    assert len(db._points_logs) == 1
+    assert db._points_logs[0].change == -100
+
+
+def test_create_order_points_insufficient(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    db._member = SimpleNamespace(id=1, points=50)
+    items = [{"sku_id": 10, "quantity": 1}]
+    with pytest.raises(BizException) as e:
+        service.create_order(db, 1, 1, items, points_used=100)
+    assert e.value.code == 1605
+
+
+def test_confirm_order_earns_points(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    db._member = SimpleNamespace(id=1, points=0)
+    db._orders[1002].status = "shipped"
+    db._orders[1002].pay_amount = Decimal("100.00")
+    data = service.confirm_order(db, 1, 1002)
+    assert data["status"] == "completed"
+    assert db._member.points == 100
+    assert len(db._points_logs) == 1
+    assert db._points_logs[0].change == 100
+    assert db._points_logs[0].type == "earn"

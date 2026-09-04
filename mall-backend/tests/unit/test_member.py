@@ -50,6 +50,15 @@ def env(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     counts = {"pending": 1, "paid": 0, "shipped": 2, "refund": 0}
     fake = FakeOrderRepo(counts)
     monkeypatch.setattr(service, "OrderRepository", lambda db: fake)
+
+    class FakeUserCouponRepo:
+        def __init__(self, db: object) -> None:
+            pass
+
+        def count_unused(self, user_id: int) -> int:
+            return 0
+
+    monkeypatch.setattr(service, "UserCouponRepository", FakeUserCouponRepo)
     return SimpleNamespace(counts=counts, member=_member())
 
 
