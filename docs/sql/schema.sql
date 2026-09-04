@@ -69,7 +69,6 @@ CREATE TABLE `category` (
   `sort`       INT             NOT NULL DEFAULT 0 COMMENT '排序，越小越靠前',
   `status`     TINYINT         NOT NULL DEFAULT 1 COMMENT '1 启用 / 0 停用',
   `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted`    TINYINT         NOT NULL DEFAULT 0 COMMENT '逻辑删除',
   `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_parent_sort` (`parent_id`, `sort`)
@@ -312,7 +311,6 @@ CREATE TABLE `banner` (
   `sort`       INT             NOT NULL DEFAULT 0 COMMENT '排序',
   `status`     TINYINT         NOT NULL DEFAULT 1 COMMENT '1 展示 / 0 隐藏',
   `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted`    TINYINT         NOT NULL DEFAULT 0 COMMENT '逻辑删除',
   `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_position_status` (`position`, `status`, `sort`)

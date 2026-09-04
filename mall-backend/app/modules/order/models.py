@@ -1,6 +1,6 @@
 """订单模块 ORM 模型：订单、订单明细。对齐 docs/database-design.md §3.7/§3.8。
 
-订单含软删除列（CommonFields，schema.sql §3.7 有 deleted）；
+订单含软删除列（BaseFields + SoftDeleteMixin，schema.sql §3.7 有 deleted）；
 订单明细为纯快照表（无 deleted/updated_at，对齐 schema.sql §3.8）。
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.models import Base, CommonFields
+from app.core.models import Base, BaseFields, SoftDeleteMixin
 
 # 订单状态机（对齐 api-design §9 / mock store.js）
 ORDER_STATUS_PENDING = "pending"
@@ -63,7 +63,7 @@ STATS_STATUSES = (
 )
 
 
-class Order(Base, CommonFields):
+class Order(Base, BaseFields, SoftDeleteMixin):
     """订单主表。"""
 
     __tablename__ = "orders"

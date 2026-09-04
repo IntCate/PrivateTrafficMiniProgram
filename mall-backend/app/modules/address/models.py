@@ -4,13 +4,13 @@ from __future__ import annotations
 from sqlalchemy import BigInteger, Boolean, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.models import Base, CommonFields
+from app.core.models import Base, BaseFields, SoftDeleteMixin
 
 # 地址数量上限（对齐 error-code 1301 / api-design §8.2）
 ADDRESS_MAX_COUNT = 20
 
 
-class ShippingAddress(Base, CommonFields):
+class ShippingAddress(Base, BaseFields, SoftDeleteMixin):
     """收货地址。"""
 
     __tablename__ = "shipping_address"

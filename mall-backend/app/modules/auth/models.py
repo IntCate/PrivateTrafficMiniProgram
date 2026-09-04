@@ -4,13 +4,13 @@ from datetime import datetime
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.models import Base, CommonFields
+from app.core.models import Base, BaseFields, SoftDeleteMixin
 
 # 会员等级字典（对应接口 memberLevel，新会员默认 bronze）
 MEMBER_LEVEL_DEFAULT = "bronze"
 
 
-class Member(Base, CommonFields):
+class Member(Base, BaseFields, SoftDeleteMixin):
     """会员。"""
 
     __tablename__ = "member"
@@ -31,7 +31,7 @@ class Member(Base, CommonFields):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, comment="最近登录时间")
 
 
-class MemberSession(Base, CommonFields):
+class MemberSession(Base, BaseFields, SoftDeleteMixin):
     """会员会话（C 端 token）。"""
 
     __tablename__ = "member_session"

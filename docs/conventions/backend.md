@@ -70,7 +70,7 @@ api（路由） → service（业务） → repository（数据访问） → mod
 
 - 库存扣减、优惠券/积分发放必须 `SELECT ... FOR UPDATE` 行锁（见 database-design §6）；
 
-- 逻辑删除表（orders / shipping\_address）默认查询必须带 `deleted=0` 过滤（仓储基类已内置）；
+- 软删表（member / member_session / product / product_sku / orders / shipping_address）默认查询必须带 `deleted=0` 过滤（各 repository/service 显式过滤，见 database-design §1.3）；
 
 - 时间统一存 MySQL `DATETIME`，输出 `yyyy-MM-dd HH:mm:ss`；
 

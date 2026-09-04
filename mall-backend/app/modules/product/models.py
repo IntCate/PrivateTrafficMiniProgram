@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.models import Base, CommonFields
+from app.core.models import Base, BaseFields, SoftDeleteMixin
 
 # 商品状态（对应 DB status）：1 上架 / 0 下架
 PRODUCT_STATUS_ON = 1
@@ -18,7 +18,7 @@ BANNER_POS_HERO = "hero"
 BANNER_POS_THEME = "theme"
 
 
-class Category(Base, CommonFields):
+class Category(Base, BaseFields):
     """商品分类。"""
 
     __tablename__ = "category"
@@ -30,7 +30,7 @@ class Category(Base, CommonFields):
     status: Mapped[int] = mapped_column(Integer, default=1, comment="1 启用 / 0 停用")
 
 
-class Product(Base, CommonFields):
+class Product(Base, BaseFields, SoftDeleteMixin):
     """商品。"""
 
     __tablename__ = "product"
@@ -59,7 +59,7 @@ class Product(Base, CommonFields):
     views: Mapped[int] = mapped_column(Integer, default=0, comment="浏览量")
 
 
-class ProductSku(Base, CommonFields):
+class ProductSku(Base, BaseFields, SoftDeleteMixin):
     """商品 SKU。"""
 
     __tablename__ = "product_sku"
@@ -79,7 +79,7 @@ class ProductSku(Base, CommonFields):
     status: Mapped[int] = mapped_column(Integer, default=1, comment="1 可售 / 0 停售")
 
 
-class Banner(Base, CommonFields):
+class Banner(Base, BaseFields):
     """运营位：hero 主横幅 / theme 主题精选。"""
 
     __tablename__ = "banner"

@@ -47,7 +47,7 @@
 - 统一响应结构 `{code, message, data}` 与统一分页对象（见 [error-code.md](conventions/error-code.md)）
 - 统一业务异常 `BizException(code, message)` + 全局异常处理器（参数错误/未登录/无权限/资源不存在/服务器错误）
 - 双体系鉴权：C 端会员 `token`（MySQL 会话表）+ 后台 `JWT + RBAC`（见 [auth.md](conventions/auth.md)）
-- 通用模型基类：`id / created_at / updated_at / deleted`（逻辑删除）
+- 通用模型基类：`BaseFields`（id/created_at/updated_at）+ 可选 `SoftDeleteMixin`（deleted 逻辑删除，按需继承）
 - 通用仓储基类：`get / get_by / page / save / update / delete`，业务仓储继承即用
 - 通用配置模块：`sys_config` 键值配置 + 后台热更新
 - 请求日志中间件 + request_id 链路追踪 + 敏感字段脱敏（见 [logging.md](conventions/logging.md)）
@@ -89,7 +89,7 @@ mall-backend/
 │   ├── core/                      # ── 模板级通用核心 ──
 │   │   ├── config.py              # pydantic-settings 分层配置
 │   │   ├── database.py            # 引擎、会话工厂、get_db 依赖
-│   │   ├── models.py              # Base、CommonFields(id/created_at/updated_at/deleted)
+│   │   ├── models.py              # Base、BaseFields、SoftDeleteMixin(软删按需)
 │   │   ├── exceptions.py          # BizException 及全局异常处理器
 │   │   ├── response.py            # 统一响应、PageResult
 │   │   ├── security.py            # 密码哈希、token 生成/校验、鉴权守卫
