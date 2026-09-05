@@ -74,7 +74,7 @@ async def login(
         member_repo.save(member)
 
     if member.status != 1:
-        raise BizException(1001, "账号已被禁用")
+        raise BizException(1004, "账号已被禁用")
 
     member.last_login_at = datetime.now(UTC)
     member = member_repo.save(member)

@@ -71,6 +71,7 @@
 | 429  | 请求过于频繁          | —                              |
 | 500  | 系统内部错误          | —                              |
 | 1001 | 登录 code 无效      | 微信 code2session 失败             |
+| 1004 | 账号已被禁用          | 后台封禁，登录被拒                      |
 | 1102 | 商品已下架           | —                              |
 | 1104 | 库存不足            | `data` 返回可购买数量                 |
 | 1201 | 数量超出单次限购（最大 99） | 购物车加购/改数量                      |
@@ -160,7 +161,7 @@ POST /api/auth/login
 
 - 首次登录返回 `member` 为新建会员，前端"快乐购物家"默认昵称
 
-- 失败返回 `1001`
+- 失败返回 `1001`（登录 code 无效）；账号被后台禁用返回 `1004`
 
 ### 3.2 退出登录 🔒
 
@@ -1141,7 +1142,9 @@ POST /api/upload
 ```
 
 - 鉴权：会员 `Authorization: Bearer`；`multipart/form-data`，字段名 `file`
+
 - 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
+
 - 返回 `data.url` 相对路径（`/uploads/after_sale/{uuid}.ext`），经 `/uploads` 静态挂载访问，小程序预览时拼接 `BASE_URL`
 
 - 用于售后凭证 `images`（最多 6 张）；前端 `pages/after-sale/apply.vue` 上传后回填 URL 一并提交
@@ -1240,6 +1243,7 @@ POST /api/upload
 | 404         | SKU/商品/购物车项/地址/订单不存在                                                        |
 | 409         | 对已支付订单重复支付（幂等冲突），前端提示"订单已支付"                                                |
 | 1001 / 1003 | 登录 code 无效；昵称长度或头像 URL 非法                                                   |
+| 1004        | 账号已被禁用（后台封禁后登录被拒）                                                           |
 | 1102        | 单商品已下架不可加购                                                                  |
 | 1104        | 库存不足（`addItem`/`preview`/`create` 均校验，`data` 带 `{ skuId, availableStock }`） |
 | 1201        | 数量超出单次限购 99（`data` 带 `{ maxQuantity }`）                                     |

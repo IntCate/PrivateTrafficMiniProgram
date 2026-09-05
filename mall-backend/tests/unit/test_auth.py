@@ -51,3 +51,32 @@ def test_exchange_openid_call_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(BizException) as exc:
         _run(_exchange_openid("code"))
     assert exc.value.code == 1801
+
+
+def test_login_disabled_member_returns_1004(monkeypatch: pytest.MonkeyPatch) -> None:
+    """禁用会员登录返回独立码 1004（与 1001「code 无效」区分，known-issues #10）。"""
+
+    async def _fake_exchange(code: str) -> dict:
+        return {"openid": "disabled_openid", "session_key": "k"}
+
+    class _Member:
+        id = 1
+        openid = "disabled_openid"
+        nickname = "x"
+        avatar = None
+        member_level = 1
+        points = 0
+        status = 0
+        last_login_at = None
+
+    class _Repo:
+        def get_by(self, openid: str) -> _Member:  # type: ignore[no-untyped-def]
+            return _Member()
+
+    monkeypatch.setattr(service, "_exchange_openid", _fake_exchange)
+    monkeypatch.setattr(service, "MemberRepository", lambda db: _Repo())
+
+    with pytest.raises(BizException) as exc:
+        _run(service.login(db=None, code="code"))  # type: ignore[arg-type]
+    assert exc.value.code == 1004
+    assert "禁用" in exc.value.message
