@@ -1,6 +1,8 @@
 """FastAPI 入口：中间件、路由注册、启动事件。"""
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,7 +17,15 @@ from app.core.scheduler import init_scheduler
 
 setup_logging()
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """应用启动/关闭生命周期（替代已弃用的 on_event）。"""
+    init_scheduler()
+    yield
+
+
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
@@ -33,11 +43,6 @@ app.include_router(api_router)
 assets_dir = Path(settings.upload_dir)
 assets_dir.mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=assets_dir), name="uploads")
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    init_scheduler()
 
 
 @app.get("/health")
