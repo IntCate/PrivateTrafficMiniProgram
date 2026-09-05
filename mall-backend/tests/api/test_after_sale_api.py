@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -118,3 +119,45 @@ def test_order_detail_reflects_after_sale_audit(
     items = lst["list"] if isinstance(lst, dict) and "list" in lst else lst.get("items", [])
     first = next(i for i in items if i["id"] == 1)
     assert first["statusText"] == "已通过"
+
+
+def test_refund_badge_and_sorting(
+    client: TestClient, db_session: Session
+) -> None:
+    """售后角标只统计"申请中"，且售后 tab 让申请中的单子排最前。
+
+    构造：order1 → refund+申请中(applying)；order2 → refund+已通过(approved)。
+    角标 refund 应为 1（而非 2），列表首个应为 order1。
+    """
+    db_session.query(AfterSale).delete()
+    o1 = db_session.get(Order, 1)
+    o2 = db_session.get(Order, 2)
+    assert o1 is not None and o2 is not None
+    o1.status = "refund"
+    o2.status = "refund"
+    db_session.add_all(
+        [
+            AfterSale(
+                order_id=1, user_id=1, type="refund", reason="a",
+                amount=Decimal("100.00"), status="applying", audit_remark=None,
+            ),
+            AfterSale(
+                order_id=2, user_id=1, type="refund", reason="b",
+                amount=Decimal("50.00"), status="approved", audit_remark="同意",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    token = _member_token(client)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    # 角标：只有 1 个"申请中"
+    overview = client.get("/api/member/overview", headers=auth).json()["data"]
+    assert overview["orderStats"]["refund"] == 1
+
+    # 排序：申请中(order1) 排在 已通过(order2) 前
+    lst = client.get("/api/orders?status=refund", headers=auth).json()["data"]
+    items = lst["list"] if isinstance(lst, dict) and "list" in lst else lst.get("items", [])
+    ids = [i["id"] for i in items]
+    assert ids == [1, 2]
