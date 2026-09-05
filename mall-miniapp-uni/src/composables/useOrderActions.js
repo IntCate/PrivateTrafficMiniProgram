@@ -50,25 +50,7 @@ export function useOrderActions({ getOrderId, onSuccess, afterCancel, buyAgainNa
   };
 
   const refundOrder = (id, status) => {
-    uni.showModal({
-      title: refundLabel(status),
-      content: '确定要提交售后申请吗？售后处理期间订单将暂停流转。',
-      confirmText: '提交申请',
-      confirmColor: '#F54949',
-      success: async (res) => {
-        if (!res.confirm) return;
-        try {
-          await orderApi.refund(resolveId(id), {
-            reason: '不符合预期',
-            type: status === 'paid' ? 'refund' : 'return',
-          });
-          refresh();
-          uni.showToast({ title: '售后申请已提交', icon: 'success' });
-        } catch (e) {
-          uni.showToast({ title: e.message || '申请失败', icon: 'none' });
-        }
-      },
-    });
+    uni.navigateTo({ url: `/pages/after-sale/apply?id=${resolveId(id)}&status=${status}` });
   };
 
   const remindShip = async (id) => {

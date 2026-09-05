@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -399,8 +400,15 @@ class AfterSaleAdminItemOut(BaseModel):
     reason: str
     amount: Decimal
     status: str
+    images: list[str] = Field(default_factory=list)
     audit_remark: str | None = None
     created_at: datetime
+
+    @field_validator("images", mode="before")
+    @classmethod
+    def _coerce_images(cls, v: Any) -> Any:
+        """存量工单 images 为 NULL，统一归一为空列表，避免 list[str] 校验失败。"""
+        return v or []
 
 
 class AuditAfterSaleRequest(BaseModel):

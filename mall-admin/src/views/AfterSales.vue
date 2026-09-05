@@ -62,6 +62,23 @@ onMounted(load)
           <template #default="{ row }">{{ typeMap[row.type] || row.type }}</template>
         </el-table-column>
         <el-table-column prop="reason" label="原因" min-width="160" show-overflow-tooltip />
+        <el-table-column label="凭证" min-width="150">
+          <template #default="{ row }">
+            <template v-if="row.images && row.images.length">
+              <el-image
+                v-for="(url, i) in row.images"
+                :key="i"
+                :src="url"
+                :preview-src-list="row.images"
+                :initial-index="i"
+                fit="cover"
+                preview-teleported
+                style="width:52px;height:52px;margin:0 4px 4px 0;border-radius:6px"
+              />
+            </template>
+            <span v-else class="no-image">无</span>
+          </template>
+        </el-table-column>
         <el-table-column label="金额" width="100">
           <template #default="{ row }">¥{{ row.amount }}</template>
         </el-table-column>
@@ -98,6 +115,20 @@ onMounted(load)
         <el-form-item label="售后单">
           <span>#{{ current?.id }}（订单 {{ current?.order_id }}）</span>
         </el-form-item>
+        <el-form-item v-if="current?.images?.length" label="凭证">
+          <div class="audit-images">
+            <el-image
+              v-for="(url, i) in current.images"
+              :key="i"
+              :src="url"
+              :preview-src-list="current.images"
+              :initial-index="i"
+              fit="cover"
+              preview-teleported
+              style="width:72px;height:72px;border-radius:6px"
+            />
+          </div>
+        </el-form-item>
         <el-form-item label="审核备注">
           <el-input v-model="remark" type="textarea" :rows="3" placeholder="请输入审核备注（可选）" />
         </el-form-item>
@@ -117,5 +148,13 @@ onMounted(load)
 .pager {
   margin-top: 16px;
   justify-content: flex-end;
+}
+.audit-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.no-image {
+  color: #999;
 }
 </style>

@@ -48,7 +48,12 @@ def test_after_sale_visible_in_admin(
     resp = client.post(
         "/api/after-sales",
         headers=auth,
-        json={"orderId": 1, "type": "refund", "reason": "商品破损"},
+        json={
+            "orderId": 1,
+            "type": "refund",
+            "reason": "商品破损",
+            "images": ["/uploads/after_sale/demo.jpg"],
+        },
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -76,6 +81,8 @@ def test_after_sale_visible_in_admin(
     assert lst_body["code"] == 0
     ids = [item["id"] for item in lst_body["data"]["list"]]
     assert after_sale.id in ids
+    item = next(i for i in lst_body["data"]["list"] if i["id"] == after_sale.id)
+    assert item["images"] == ["/uploads/after_sale/demo.jpg"]
 
 
 def test_order_detail_reflects_after_sale_audit(
@@ -162,3 +169,72 @@ def test_refund_badge_and_sorting(
     items = lst["list"] if isinstance(lst, dict) and "list" in lst else lst.get("items", [])
     ids = [i["id"] for i in items]
     assert ids == [1, 2]
+
+
+def test_after_sale_reason_and_type_validation(
+    client: TestClient, db_session: Session
+) -> None:
+    """售后申请需填写原因、类型合法（1402）。"""
+    db_session.query(AfterSale).delete()
+    db_session.commit()
+    auth = {"Authorization": f"Bearer {_member_token(client)}"}
+
+    # 原因必填
+    resp = client.post(
+        "/api/after-sales", headers=auth,
+        json={"orderId": 1, "type": "refund", "reason": "  "},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 1402
+
+    # 类型非法
+    resp = client.post(
+        "/api/after-sales", headers=auth,
+        json={"orderId": 1, "type": "weird", "reason": "破损"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["code"] == 1402
+
+    # 合法申请
+    resp = client.post(
+        "/api/after-sales", headers=auth,
+        json={"orderId": 1, "type": "refund", "reason": " 商品破损 "},
+    )
+    assert resp.json()["code"] == 0
+    assert resp.json()["data"]["reason"] == "商品破损"  # 已去除首尾空格
+
+
+def test_after_sale_refund_type_follows_choice(
+    client: TestClient, db_session: Session
+) -> None:
+    """订单 refund_type 跟随用户选择的售后类型（而非按订单状态推断）。"""
+    db_session.query(AfterSale).delete()
+    o2 = db_session.get(Order, 2)
+    assert o2 is not None
+    o2.status = "completed"
+    db_session.commit()
+
+    auth = {"Authorization": f"Bearer {_member_token(client)}"}
+    resp = client.post(
+        "/api/after-sales", headers=auth,
+        json={"orderId": 2, "type": "return", "reason": "不合适"},
+    )
+    assert resp.json()["code"] == 0
+    assert resp.json()["data"]["type"] == "return"
+
+    db_session.refresh(o2)
+    assert o2.refund_type == "return"
+
+
+def test_upload_image(client: TestClient, db_session: Session) -> None:
+    """会员可上传图片，返回 /uploads/after_sale/ 相对 URL。"""
+    auth = {"Authorization": f"Bearer {_member_token(client)}"}
+    resp = client.post(
+        "/api/upload",
+        headers=auth,
+        files={"file": ("proof.png", b"\x89PNG\r\n\x1a\n000", "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"]["url"].startswith("/uploads/after_sale/")

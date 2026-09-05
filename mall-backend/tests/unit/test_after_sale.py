@@ -161,10 +161,10 @@ def test_create_after_sale_default_type_paid(env: FakeDb) -> None:
     assert env._orders[1].refund_type == "refund"
 
 
-def test_create_after_sale_default_type_shipped(env: FakeDb) -> None:
-    """shipped → return(退货退款)。"""
+def test_create_after_sale_type_follows_user_choice_shipped(env: FakeDb) -> None:
+    """shipped 订单用户选 refund → refund_type 跟随用户选择，不再按订单原状态推断为 return。"""
     service.create_after_sale(env, 1, CreateAfterSaleRequest(order_id=4, type="refund", reason="x"))
-    assert env._orders[4].refund_type == "return"
+    assert env._orders[4].refund_type == "refund"
 
 
 def test_create_after_sale_custom_amount(env: FakeDb) -> None:

@@ -80,7 +80,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onLoad, onUnload } from '@dcloudio/uni-app';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
 import { useOrderActions } from '@/composables/useOrderActions';
 import { useCountdown } from '@/composables/useCountdown';
@@ -91,6 +91,10 @@ let orderId = null;
 
 onLoad((options) => {
   orderId = Number(options.id);
+});
+
+// 用 onShow 加载，保证从"申请售后"返回后能拉到最新状态
+onShow(() => {
   reload();
 });
 

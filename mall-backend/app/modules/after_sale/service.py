@@ -11,6 +11,8 @@ from app.core.exceptions import BizException
 from app.modules.after_sale.models import (
     AFTER_SALE_APPLYING,
     AFTER_SALE_STATUS_TEXT,
+    AFTER_SALE_TYPE_REFUND,
+    AFTER_SALE_TYPE_RETURN,
     AfterSale,
 )
 from app.modules.after_sale.repository import AfterSaleRepository
@@ -67,6 +69,10 @@ def create_after_sale(
         raise BizException(1403, "订单归属不匹配")
     if order.status not in REFUNDABLE_STATUSES:
         raise BizException(1402, "订单状态不允许申请售后")
+    if not (body.reason or "").strip():
+        raise BizException(1402, "请填写售后原因")
+    if body.type not in (AFTER_SALE_TYPE_REFUND, AFTER_SALE_TYPE_RETURN):
+        raise BizException(1402, "售后类型不合法")
 
     existing = db.scalars(
         select(AfterSale).where(
@@ -82,18 +88,17 @@ def create_after_sale(
         order_id=body.order_id,
         user_id=user_id,
         type=body.type,
-        reason=body.reason,
+        reason=body.reason.strip(),
         amount=amount,
         status=AFTER_SALE_APPLYING,
         images=body.images or None,
     )
     db.add(row)
-    # 订单转售后中：回补库存 + 记录退款字段（与旧订单退款语义一致）
-    original_status = order.status
+    # 订单转售后中：回补库存 + 记录退款字段（refund_type 跟随用户选择的类型）
     _restore_stock(db, order)
     order.status = "refund"
-    order.refund_reason = body.reason or "不符合预期"
-    order.refund_type = "refund" if original_status == "paid" else "return"
+    order.refund_reason = body.reason.strip()
+    order.refund_type = body.type
     order.refund_time = datetime.now()
     db.flush()
     db.commit()

@@ -8,6 +8,7 @@ from app.modules.admin.api import router as admin_router
 from app.modules.after_sale.api import router as after_sale_router
 from app.modules.auth.api import router as auth_router
 from app.modules.cart.api import router as cart_router
+from app.modules.common.api import router as common_router
 from app.modules.coupon.api import router as coupon_router
 from app.modules.favorite.api import router as favorite_router
 from app.modules.member.api import router as member_router
@@ -31,6 +32,7 @@ api_router.include_router(cart_router, prefix="/api")
 api_router.include_router(address_router, prefix="/api")
 api_router.include_router(order_router, prefix="/api")
 api_router.include_router(favorite_router, prefix="/api")
+api_router.include_router(common_router, prefix="/api")
 api_router.include_router(after_sale_router, prefix="/api")
 api_router.include_router(coupon_router, prefix="/api")
 api_router.include_router(points_router, prefix="/api")

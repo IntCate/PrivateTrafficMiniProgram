@@ -1113,7 +1113,9 @@ POST /api/after-sales
 
 - 同一订单已有 applying/approved 售后单 → `1606`（重复申请）
 
-- 申请成功生成 `applying` 售后单，与 `orders` 表 1:N 关联；**并联动订单转售后中**：状态置 `refund`、`refund_reason`/`refund_type`/`refund_time` 落库、回补已实扣库存。退款类型由订单原状态推断（`paid`→`refund`，`shipped`/`completed`→`return`）
+- 申请成功生成 `applying` 售后单，与 `orders` 表 1:N 关联；**并联动订单转售后中**：状态置 `refund`、`refund_reason`/`refund_type`/`refund_time` 落库、回补已实扣库存。`refund_type` 跟随用户选择的售后类型（`type`＝refund 仅退款 / return 退货退款），不再按订单原状态推断
+
+- `reason` 必填（去除首尾空白），`type` 仅允许 refund/return，否则 `1402`
 
 - 此接口为售后申请的统一入口（旧 `POST /api/orders/{id}/refund` 已下线，见 §9.7）
 
@@ -1129,6 +1131,20 @@ GET /api/after-sales/{id}
 - 详情：不存在 → `404`；非本人 → `1403`
 
 - `statusText` 映射：applying 申请中 / approved 已通过 / rejected 已驳回 / refunded 已退款 / closed 已关闭
+
+- 后台 `GET /admin/api/after-sales` 与 `PUT /admin/api/after-sales/{id}/audit` 同样返回 `images`（凭证相对路径列表），后台 `AfterSales.vue` 用 `el-image` 预览并支持大图；后台渲染时需代理 `/uploads` 到后端以便读取图片
+
+### 12.3 图片上传
+
+```
+POST /api/upload
+```
+
+- 鉴权：会员 `Authorization: Bearer`；`multipart/form-data`，字段名 `file`
+- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
+- 返回 `data.url` 相对路径（`/uploads/after_sale/{uuid}.ext`），经 `/uploads` 静态挂载访问，小程序预览时拼接 `BASE_URL`
+
+- 用于售后凭证 `images`（最多 6 张）；前端 `pages/after-sale/apply.vue` 上传后回填 URL 一并提交
 
 ***
 
