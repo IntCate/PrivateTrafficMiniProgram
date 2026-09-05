@@ -616,39 +616,6 @@ def test_buy_again_no_address_400(
     assert e.value.code == 400
 
 
-# ---- B5-14 售后/退款 ----
-
-def test_refund_ok_restore_stock(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
-    db, _, _ = env
-    db._skus[10].stock = 49  # 模拟支付已实扣 1 件（stock 50 → 49）
-    data = service.refund_order(db, 1, 1001, "不符合预期", "refund")
-    assert data["status"] == "refund"
-    assert db._skus[10].stock == 50  # 退款回补已实扣库存
-
-
-def test_refund_default_type_by_status(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
-    db, _, _ = env
-    service.refund_order(db, 1, 1001)  # paid → 默认 refund
-    assert db._orders[1001].refund_type == "refund"
-    service.refund_order(db, 1, 1002)  # shipped → 默认 return
-    assert db._orders[1002].refund_type == "return"
-
-
-def test_refund_non_refundable_1402(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
-    db, _, _ = env
-    with pytest.raises(BizException) as e:
-        service.refund_order(db, 1, 1003)  # pending
-    assert e.value.code == 1402
-
-
-def test_refund_repeat_1402(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
-    db, _, _ = env
-    service.refund_order(db, 1, 1001)
-    with pytest.raises(BizException) as e:
-        service.refund_order(db, 1, 1001)  # 已是 refund
-    assert e.value.code == 1402
-
-
 # ---- B5-15 超时未支付自动关闭 ----
 
 def test_close_timeout_orders_closes_and_releases(

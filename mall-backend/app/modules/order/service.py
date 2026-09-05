@@ -27,7 +27,6 @@ from app.modules.coupon.models import (
 from app.modules.order.models import (
     ORDER_STATUS_CANCELLED,
     ORDER_STATUS_PENDING,
-    REFUNDABLE_STATUSES,
     STATUS_DESC,
     STATUS_TEXT,
     Order,
@@ -214,18 +213,6 @@ def _settle_stock(db: Session, order: Order) -> None:
         if sku:
             sku.stock = max(sku.stock - item.quantity, 0)
             sku.lock_stock = max(sku.lock_stock - item.quantity, 0)
-
-
-def _restore_stock(db: Session, order: Order) -> None:
-    """售后/退款回补库存：stock += qty（支付已实扣，退款恢复可售，对齐 PRD §4.x）。
-
-    订单流转：下单预占 lock → 支付转实扣（stock/lock 同减）→ 退款把已售出部分退回库存。
-    """
-    items = OrderItemRepository(db).list_by_order_ids([order.id])
-    for item in items:
-        sku = db.get(ProductSku, item.sku_id)
-        if sku:
-            sku.stock += item.quantity
 
 
 def _resolve_coupon(
@@ -655,29 +642,6 @@ def cancel_order(db: Session, user_id: int, order_id: int, reason: str | None = 
     _release_stock(db, order)
     order.status = "cancelled"
     order.cancel_reason = reason
-    db.commit()
-    return _detail_dto(order, _order_items(db, order))
-
-
-def refund_order(
-    db: Session,
-    user_id: int,
-    order_id: int,
-    reason: str | None = None,
-    refund_type: str | None = None,
-) -> dict:
-    """申请售后/退款（对齐 api-design §9.7 / test-cases B5-14）。
-    仅 paid/shipped/completed 可申请；订单转 refund 并回补已实扣库存；非三态 → 1402。
-    """
-    order = _get_owned_order(db, user_id, order_id)
-    if order.status not in REFUNDABLE_STATUSES:
-        raise BizException(1402, "订单状态不允许申请售后")
-    _restore_stock(db, order)
-    original_status = order.status
-    order.status = "refund"
-    order.refund_reason = reason or "不符合预期"
-    order.refund_type = refund_type or ("refund" if original_status == "paid" else "return")
-    order.refund_time = datetime.now()
     db.commit()
     return _detail_dto(order, _order_items(db, order))
 

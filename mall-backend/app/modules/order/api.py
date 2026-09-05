@@ -13,7 +13,6 @@ from app.modules.order.schemas import (
     CreateDirectOrderRequest,
     CreateOrderRequest,
     PayOrderRequest,
-    RefundOrderRequest,
 )
 from app.modules.order.service import (
     buy_again,
@@ -27,7 +26,6 @@ from app.modules.order.service import (
     pay_order,
     preview_direct_order,
     preview_order,
-    refund_order,
     remind_order,
 )
 
@@ -137,17 +135,6 @@ def cancel_endpoint(
 ) -> dict:
     """取消订单 🔒（对齐 api-design §9.6）。"""
     return ok(cancel_order(db, member.id, order_id, body.reason))
-
-
-@router.post("/{order_id}/refund")
-def refund_endpoint(
-    order_id: int,
-    body: RefundOrderRequest,
-    member: Member = Depends(get_current_member),
-    db: Session = Depends(get_db),
-) -> dict:
-    """申请售后/退款 🔒（对齐 api-design §9.7）。"""
-    return ok(refund_order(db, member.id, order_id, body.reason, body.type))
 
 
 @router.post("/{order_id}/remind")

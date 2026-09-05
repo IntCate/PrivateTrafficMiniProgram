@@ -183,9 +183,9 @@ const routes = [
   },
   {
     method: 'POST',
-    pattern: /^\/api\/orders\/(\d+)\/refund$/,
+    pattern: /^\/api\/after-sales$/,
     auth: true,
-    handler: (ctx, match) => store.refundOrder(match[1], ctx.body || {}),
+    handler: (ctx, body) => store.refundOrder(body.orderId, body),
   },
   {
     method: 'POST',

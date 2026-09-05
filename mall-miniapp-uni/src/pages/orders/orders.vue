@@ -22,7 +22,7 @@
                 <text class="order-no">订单号 {{ order.orderNo }}</text>
                 <view class="order-status-wrap">
                   <text v-if="order.status === 'pending' && order.payDeadline" class="order-countdown">剩余 {{ countdownText(order.id) }}</text>
-                  <text class="order-status">{{ order.statusText }}</text>
+                  <text v-else class="order-status">{{ order.statusText }}</text>
                 </view>
               </view>
               <view class="order-item" v-for="(item, index) in order.items" :key="index">
@@ -253,9 +253,9 @@ const { payOrder, cancelOrder, refundLabel, refundOrder, remindShip, confirmRece
 }
 
 .order-countdown {
-  font-size: 11px;
+  font-size: 13px;
   color: $mall-primary;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .order-item {

@@ -127,7 +127,7 @@
 | B5-11  | 越权订单        | 访问他人订单                                                 | `1403` 订单归属不匹配                                              |
 | B5-12  | 再次购买        | `buy-again`                                            | 生成新 pending 订单；无地址/空商品 `400`                                |
 | B5-13  | 订单不存在/并发锁库存 | 不存在 id / 并发下单                                          | `404` / `1104` 或 `1406` 库存锁定失败                              |
-| B5-14  | 售后/退款申请     | `POST /api/orders/{id}/refund` paid/shipped/completed  | 订单转 refund，回补已实扣库存（`stock += qty`），返回 detail DTO；非三态 `1402` |
+| B5-14  | 售后/退款申请     | `POST /api/after-sales`（统一入口）paid/shipped/completed  | 生成 applying 工单 + 订单联动转 refund + 回补已实扣库存（`stock += qty`）+ 记录 `refund_reason`/`refund_type`/`refund_time`；非三态 `1402`；**后台售后列表可见**（端到端，旧 `/orders/{id}/refund` 已下线） |
 | B5-14a | 售后工单申请      | `POST /api/after-sales` 合法 / 订单不存在 / 非本人 / 状态非法 / 重复申请 | 成功生成 applying 工单（amount=实付金额）；`404`/`1403`/`1402`/`1606`    |
 | B5-14b | 售后单列表/详情    | 按 status 筛选 + 分页 / 详情                                  | 各状态正确，statusText 正确；详情不存在 `404`、非本人 `1403`                  |
 

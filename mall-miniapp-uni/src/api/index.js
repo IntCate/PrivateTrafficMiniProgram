@@ -61,7 +61,7 @@ export const orderApi = {
   cancel: (id, reason) =>
     request({ url: `/api/orders/${id}/cancel`, method: 'POST', data: { reason } }),
   refund: (id, payload) =>
-    request({ url: `/api/orders/${id}/refund`, method: 'POST', data: payload }),
+    request({ url: `/api/after-sales`, method: 'POST', data: { orderId: id, ...payload } }),
   remind: (id) => request({ url: `/api/orders/${id}/remind`, method: 'POST' }),
   confirm: (id) => request({ url: `/api/orders/${id}/confirm`, method: 'POST' }),
   buyAgain: (id) => request({ url: `/api/orders/${id}/buy-again`, method: 'POST' }),

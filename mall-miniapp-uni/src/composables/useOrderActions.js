@@ -58,8 +58,11 @@ export function useOrderActions({ getOrderId, onSuccess, afterCancel, buyAgainNa
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          const data = await orderApi.refund(resolveId(id), { reason: '不符合预期' });
-          refresh(data);
+          await orderApi.refund(resolveId(id), {
+            reason: '不符合预期',
+            type: status === 'paid' ? 'refund' : 'return',
+          });
+          refresh();
           uni.showToast({ title: '售后申请已提交', icon: 'success' });
         } catch (e) {
           uni.showToast({ title: e.message || '申请失败', icon: 'none' });

@@ -130,10 +130,12 @@ def env(monkeypatch: pytest.MonkeyPatch) -> FakeDb:
             1: _order(1),
             2: _order(2, status="pending"),
             3: _order(3, user_id=2),
+            4: _order(4, status="shipped"),
         },
         after_sales={},
     )
     monkeypatch.setattr(service, "AfterSaleRepository", lambda d: FakeAfterSaleRepo(d))
+    monkeypatch.setattr(service, "_restore_stock", lambda db, order: None)
     return db
 
 
@@ -147,6 +149,22 @@ def test_create_after_sale_ok(env: FakeDb) -> None:
     assert item.status == "applying"
     assert item.amount == 100.0  # 默认取订单实付金额
     assert db._after_sales[100].order_id == 1
+    # 联动订单转售后中
+    assert db._orders[1].status == "refund"
+    assert db._orders[1].refund_reason == "商品破损"
+    assert db._orders[1].refund_type == "refund"
+
+
+def test_create_after_sale_default_type_paid(env: FakeDb) -> None:
+    """paid → refund(仅退款)。"""
+    service.create_after_sale(env, 1, CreateAfterSaleRequest(order_id=1, type="refund", reason="x"))
+    assert env._orders[1].refund_type == "refund"
+
+
+def test_create_after_sale_default_type_shipped(env: FakeDb) -> None:
+    """shipped → return(退货退款)。"""
+    service.create_after_sale(env, 1, CreateAfterSaleRequest(order_id=4, type="refund", reason="x"))
+    assert env._orders[4].refund_type == "return"
 
 
 def test_create_after_sale_custom_amount(env: FakeDb) -> None:

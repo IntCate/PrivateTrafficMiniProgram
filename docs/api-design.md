@@ -786,29 +786,15 @@ POST /api/orders/{id}/cancel
 
 ### 9.7 申请售后/退款
 
-```
-POST /api/orders/{id}/refund
-```
+统一售后入口为 `POST /api/after-sales`（见 §12.1）。申请成功后：生成 `applying` 售后工单，并联动订单置 `refund`、回补已实扣库存、记录退款字段（`refund_reason` / `refund_type` / `refund_time`）。
 
-请求：
-
-```json
-{
-  "reason": "不符合预期",
-  "type": "refund"
-}
-```
-
-| 参数     | 类型     | 必填 | 说明                                                              |
-| ------ | ------ | -- | --------------------------------------------------------------- |
-| reason | string | 否  | 申请原因，默认「不符合预期」                                                  |
-| type   | string | 否  | `refund` 仅退款 / `return` 退货退款；不传时 paid 默认 `refund`，其余默认 `return` |
-
-响应 `data`：同 §9.4 订单详情 DTO（状态已变更为 `refund`）。
+> **旧接口 `POST /api/orders/{id}/refund` 已下线**。此前它只改订单状态、不建售后工单，导致后台售后列表查不到记录；小程序现已统一走 §12.1 工单制，后台可见工单。
 
 业务规则：
 
 - 仅 `paid` / `shipped` / `completed` 可申请售后；非三态返回 `1402`
+
+- 退款类型由订单原状态推断：`paid` → `refund`（仅退款），`shipped`/`completed` → `return`（退货退款）
 
 - 申请后订单状态置 `refund`，**回补已实扣库存**（`stock += qty`；支付已转实扣，退款恢复可售），订单暂停流转
 
@@ -1119,7 +1105,9 @@ POST /api/after-sales
 
 - 同一订单已有 applying/approved 售后单 → `1606`（重复申请）
 
-- 申请成功生成 `applying` 售后单，与 `orders` 表 1:N 关联
+- 申请成功生成 `applying` 售后单，与 `orders` 表 1:N 关联；**并联动订单转售后中**：状态置 `refund`、`refund_reason`/`refund_type`/`refund_time` 落库、回补已实扣库存。退款类型由订单原状态推断（`paid`→`refund`，`shipped`/`completed`→`return`）
+
+- 此接口为售后申请的统一入口（旧 `POST /api/orders/{id}/refund` 已下线，见 §9.7）
 
 ### 12.2 售后单列表/详情
 
@@ -1142,17 +1130,17 @@ GET /api/after-sales/{id}
 
 鉴权：`POST /admin/api/login`（username + password → JWT），后续请求带 `Authorization: Bearer {token}`；角色：admin / operator / finance。
 
-| 模块  | 接口                                                                                     | 说明                 |
-| --- | -------------------------------------------------------------------------------------- | ------------------ |
+| 模块  | 接口                                                                                                                                                               | 说明                 |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}` | 商品 CRUD、上下架、SKU 维护 |
-| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                            | 分类管理               |
-| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship` | 查询、发货              |
-| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                   | 审核                 |
-| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                          | 列表、禁用              |
-| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`                                               | 首页横幅/主题管理          |
-| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                 | 券模板与发放             |
-| 数据  | `GET /admin/api/dashboard/summary`                                                     | 销售额、订单量、用户数概览      |
-| 设置  | `GET/PUT /admin/api/configs`                                                           | 系统配置               |
+| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                      | 分类管理               |
+| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                           | 查询、发货              |
+| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                             | 审核                 |
+| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                                                                                                    | 列表、禁用              |
+| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`                                                                                                                         | 首页横幅/主题管理          |
+| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                                                                                           | 券模板与发放             |
+| 数据  | `GET /admin/api/dashboard/summary`                                                                                                                               | 销售额、订单量、用户数概览      |
+| 设置  | `GET/PUT /admin/api/configs`                                                                                                                                     | 系统配置               |
 
 ***
 

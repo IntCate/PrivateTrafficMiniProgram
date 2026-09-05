@@ -26,6 +26,18 @@ def _fmt_dt(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _restore_stock(db: Session, order: Order) -> None:
+    """售后回补库存：支付已实扣，退款恢复可售（对齐 PRD §4.x）。"""
+    from app.modules.order.models import OrderItem
+    from app.modules.product.models import ProductSku
+
+    items = db.scalars(select(OrderItem).where(OrderItem.order_id == order.id)).all()
+    for item in items:
+        sku = db.get(ProductSku, item.sku_id)
+        if sku:
+            sku.stock += item.quantity
+
+
 def _get_owned_after_sale(db: Session, user_id: int, after_sale_id: int) -> AfterSale:
     """加载本人售后单：不存在 404 / 越权 1403。"""
     row = db.get(AfterSale, after_sale_id)
@@ -44,7 +56,9 @@ def create_after_sale(
     - 订单不存在/非本人 → 404/1403；
     - 订单状态非 paid/shipped/completed → 1402；
     - 同一订单已有 applying/approved 售后单 → 1606（重复申请）；
-    - 申请金额默认取订单实付金额（服务端核算，不信任客户端）。
+    - 申请金额默认取订单实付金额（服务端核算，不信任客户端）；
+    - 申请成功即建工单，并把订单转为 `refund`（售后中）：回补已实扣库存、记录退款字段。
+      统一售后入口为 `POST /api/after-sales`（旧 `POST /orders/{id}/refund` 已下线）。
     """
     order = db.get(Order, body.order_id)
     if order is None:
@@ -74,6 +88,13 @@ def create_after_sale(
         images=body.images or None,
     )
     db.add(row)
+    # 订单转售后中：回补库存 + 记录退款字段（与旧订单退款语义一致）
+    original_status = order.status
+    _restore_stock(db, order)
+    order.status = "refund"
+    order.refund_reason = body.reason or "不符合预期"
+    order.refund_type = "refund" if original_status == "paid" else "return"
+    order.refund_time = datetime.now()
     db.flush()
     db.commit()
     return _to_item(row)

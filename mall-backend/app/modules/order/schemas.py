@@ -158,10 +158,3 @@ class CancelOrderRequest(CamelRequest):
     """取消订单（对齐 api-design §9.6）。"""
 
     reason: str | None = None
-
-
-class RefundOrderRequest(CamelRequest):
-    """申请售后/退款（对齐 api-design §9.7）。"""
-
-    reason: str | None = None
-    type: str | None = None
