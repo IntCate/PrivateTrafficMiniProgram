@@ -1134,13 +1134,13 @@ GET /api/after-sales/{id}
 
 ## 13. 管理后台接口 🔒
 
-> 状态：P1-④ 已实现（登录 + JWT + RBAC，商品/分类/订单/售后/会员/运营位/优惠券/数据概览/系统配置全量接口）。
+> 状态：P1-④ 已实现（登录 + JWT + RBAC，商品/分类/订单/售后/会员/运营位/优惠券/数据概览/系统配置全量接口；商品含 SKU 维护）。
 
 鉴权：`POST /admin/api/login`（username + password → JWT），后续请求带 `Authorization: Bearer {token}`；角色：admin / operator / finance。
 
 | 模块  | 接口                                                                                     | 说明                 |
 | --- | -------------------------------------------------------------------------------------- | ------------------ |
-| 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`                   | 商品 CRUD、上下架、SKU 维护 |
+| 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}` | 商品 CRUD、上下架、SKU 维护 |
 | 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                            | 分类管理               |
 | 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship` | 查询、发货              |
 | 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                   | 审核                 |

@@ -19,18 +19,20 @@ from app.modules.admin.schemas import (
     CreateCategoryRequest,
     CreateCouponRequest,
     CreateProductRequest,
+    CreateProductSkuRequest,
     GrantCouponRequest,
     ShipOrderRequest,
     UpdateAdminStatusRequest,
     UpdateConfigRequest,
     UpdateMemberStatusRequest,
+    UpdateProductSkuRequest,
     UpdateProductStatusRequest,
 )
 from app.modules.after_sale.models import AfterSale
 from app.modules.auth.models import Member
 from app.modules.coupon.models import Coupon
 from app.modules.order.models import Order
-from app.modules.product.models import Banner, Category, Product
+from app.modules.product.models import Banner, Category, Product, ProductSku
 
 
 def _admin(
@@ -75,6 +77,30 @@ def _product(id: int, *, name: str = "商品", status: int = 1) -> SimpleNamespa
         is_free_shipping=True,
         status=status,
         views=5,
+        deleted=False,
+        created_at=datetime(2026, 9, 1, 10, 0, 0),
+    )
+
+
+def _sku(
+    id: int,
+    *,
+    product_id: int = 1,
+    sku_code: str = "SKU0001",
+    sku_text: str = "黑色",
+    status: int = 1,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=id,
+        product_id=product_id,
+        sku_code=sku_code,
+        attrs=[{"name": "颜色", "value": "黑"}],
+        sku_text=sku_text,
+        price=Decimal("99.00"),
+        stock=100,
+        lock_stock=0,
+        image=None,
+        status=status,
         deleted=False,
         created_at=datetime(2026, 9, 1, 10, 0, 0),
     )
@@ -191,13 +217,25 @@ def _config(key: str, value: str, remark: str | None = None) -> SimpleNamespace:
 
 _MODEL_BY_TABLE = {
     m.__tablename__: m
-    for m in (AdminUser, SysConfig, Product, Category, Order, Member, Banner, Coupon, AfterSale)
+    for m in (
+        AdminUser,
+        SysConfig,
+        Product,
+        ProductSku,
+        Category,
+        Order,
+        Member,
+        Banner,
+        Coupon,
+        AfterSale,
+    )
 }
 
 _MODEL_BY_NAME = {m.__name__: m for m in _MODEL_BY_TABLE.values()}
 
 _DEFAULTS: dict[type, dict[str, object]] = {
     Product: {"sales": 0, "views": 0, "stock": 0, "status": 1, "is_free_shipping": True},
+    ProductSku: {"attrs": [], "lock_stock": 0, "stock": 0, "status": 1},
     Coupon: {"received_count": 0, "total_count": 0, "min_amount": Decimal("0.00")},
     Category: {"parent_id": 0, "sort": 0, "status": 1},
     Banner: {"sort": 0, "status": 1, "link_type": "none"},
@@ -327,6 +365,7 @@ def env(monkeypatch: pytest.MonkeyPatch) -> FakeDb:
     db = FakeDb(
         AdminUser=[_admin(1)],
         Product=[_product(1), _product(2)],
+        ProductSku=[_sku(1)],
         Category=[_category(1)],
         Order=[_order(1), _order(2, status="pending")],
         Member=[_member(1)],
@@ -483,6 +522,68 @@ def test_delete_product_ok(env: FakeDb) -> None:
 def test_delete_product_not_found(env: FakeDb) -> None:
     with pytest.raises(BizException) as e:
         service.delete_product(env, 999)
+    assert e.value.code == 404
+
+
+# ---- 商品 SKU ----
+
+def test_list_product_skus_ok(env: FakeDb) -> None:
+    data = service.list_product_skus(env, 1)
+    assert len(data["list"]) == 1
+    assert data["list"][0]["sku_code"] == "SKU0001"
+
+
+def test_list_product_skus_product_not_found(env: FakeDb) -> None:
+    with pytest.raises(BizException) as e:
+        service.list_product_skus(env, 999)
+    assert e.value.code == 404
+
+
+def test_create_product_sku_ok(env: FakeDb) -> None:
+    body = CreateProductSkuRequest(
+        sku_code="SKU1000", sku_text="白色；40", price=Decimal("100.00"), stock=50
+    )
+    out = service.create_product_sku(env, 1, body)
+    assert out["sku_code"] == "SKU1000"
+    assert out["product_id"] == 1
+
+
+def test_create_product_sku_product_not_found(env: FakeDb) -> None:
+    body = CreateProductSkuRequest(sku_code="SKU-X", sku_text="x", price=Decimal("10.00"), stock=1)
+    with pytest.raises(BizException) as e:
+        service.create_product_sku(env, 999, body)
+    assert e.value.code == 404
+
+
+def test_update_product_sku_ok(env: FakeDb) -> None:
+    body = UpdateProductSkuRequest(price=Decimal("88.00"), stock=5)
+    out = service.update_product_sku(env, 1, 1, body)
+    assert out["price"] == Decimal("88.00")
+    assert out["stock"] == 5
+
+
+def test_update_product_sku_not_found(env: FakeDb) -> None:
+    body = UpdateProductSkuRequest(price=Decimal("88.00"))
+    with pytest.raises(BizException) as e:
+        service.update_product_sku(env, 1, 999, body)
+    assert e.value.code == 404
+
+
+def test_update_product_sku_wrong_product(env: FakeDb) -> None:
+    body = UpdateProductSkuRequest(price=Decimal("88.00"))
+    with pytest.raises(BizException) as e:
+        service.update_product_sku(env, 2, 1, body)
+    assert e.value.code == 404
+
+
+def test_delete_product_sku_ok(env: FakeDb) -> None:
+    service.delete_product_sku(env, 1, 1)
+    assert env._data[ProductSku][1].deleted is True
+
+
+def test_delete_product_sku_not_found(env: FakeDb) -> None:
+    with pytest.raises(BizException) as e:
+        service.delete_product_sku(env, 1, 999)
     assert e.value.code == 404
 
 
@@ -652,7 +753,7 @@ def test_audit_after_sale_wrong_status(env: FakeDb) -> None:
     env._data[AfterSale][1].status = "approved"
     with pytest.raises(BizException) as e:
         service.audit_after_sale(env, 1, approve=True)
-    assert e.value.code == 1402
+    assert e.value.code == 1607
 
 
 def test_audit_after_sale_not_found(env: FakeDb) -> None:

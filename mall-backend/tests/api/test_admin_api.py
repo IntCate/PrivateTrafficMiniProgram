@@ -251,6 +251,74 @@ def test_delete_product_ok(client: TestClient) -> None:
     assert resp.json()["data"]["deleted"] is True
 
 
+# ---- 商品 SKU ----
+
+def test_list_product_skus_ok(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.get("/admin/api/products/1/skus", headers=_auth(token))
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"]["list"][0]["sku_code"] == "SKU0001"
+
+
+def test_list_product_skus_not_found(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.get("/admin/api/products/999/skus", headers=_auth(token))
+    assert resp.json()["code"] == 404
+
+
+def test_create_product_sku_ok(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.post(
+        "/admin/api/products/1/skus",
+        json={"sku_code": "SKU1000", "sku_text": "白色；40", "price": "100.00", "stock": 50},
+        headers=_auth(token),
+    )
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"]["sku_code"] == "SKU1000"
+
+
+def test_create_product_sku_product_not_found(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.post(
+        "/admin/api/products/999/skus",
+        json={"sku_code": "SKU-X", "sku_text": "x", "price": "10.00", "stock": 1},
+        headers=_auth(token),
+    )
+    assert resp.json()["code"] == 404
+
+
+def test_update_product_sku_ok(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.put(
+        "/admin/api/products/1/skus/1",
+        json={"price": "88.00", "stock": 5},
+        headers=_auth(token),
+    )
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"]["price"] == "88.00"
+    assert body["data"]["stock"] == 5
+
+
+def test_update_product_sku_not_found(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.put(
+        "/admin/api/products/1/skus/999",
+        json={"price": "88.00"},
+        headers=_auth(token),
+    )
+    assert resp.json()["code"] == 404
+
+
+def test_delete_product_sku_ok(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    resp = client.delete("/admin/api/products/1/skus/1", headers=_auth(token))
+    assert resp.json()["code"] == 0
+    assert resp.json()["data"]["deleted"] is True
+
+
 # ---- 分类 ----
 
 def test_list_categories_ok(client: TestClient) -> None:
@@ -435,6 +503,22 @@ def test_audit_after_sale_reject(client: TestClient) -> None:
     assert body["data"]["status"] == "rejected"
 
 
+def test_audit_after_sale_wrong_status(client: TestClient) -> None:
+    token = _login(client, "admin", "Admin@123456")
+    client.put(
+        "/admin/api/after-sales/1/audit",
+        json={"approve": True},
+        headers=_auth(token),
+    )
+    resp = client.put(
+        "/admin/api/after-sales/1/audit",
+        json={"approve": True},
+        headers=_auth(token),
+    )
+    assert resp.json()["code"] == 1607
+    assert resp.json()["message"] == "售后单状态不允许审核"
+
+
 # ---- 数据概览 ----
 
 def test_dashboard_summary_ok(client: TestClient) -> None:
@@ -446,6 +530,7 @@ def test_dashboard_summary_ok(client: TestClient) -> None:
     assert body["data"]["member_count"] == 1
     assert body["data"]["product_count"] == 1
     assert body["data"]["pending_order_count"] == 1
+    assert body["data"]["total_sales"] == "100.00"
 
 
 # ---- 系统配置 ----

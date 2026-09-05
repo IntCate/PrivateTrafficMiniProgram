@@ -27,7 +27,7 @@ from app.modules.after_sale.models import AfterSale
 from app.modules.auth.models import Member
 from app.modules.coupon.models import Coupon
 from app.modules.order.models import Order
-from app.modules.product.models import Banner, Category, Product
+from app.modules.product.models import Banner, Category, Product, ProductSku
 
 TEST_DB_URL = (
     "mysql+pymysql://test:123456@127.0.0.1:3306/mall_admin_test?charset=utf8mb4"
@@ -121,6 +121,18 @@ def _seed_base() -> list[Any]:
             image="https://img.example.com/b.png",
             link_type="none",
             sort=0,
+            status=1,
+        ),
+        ProductSku(
+            id=1,
+            product_id=1,
+            sku_code="SKU0001",
+            attrs=[{"name": "颜色", "value": "黑"}],
+            sku_text="黑",
+            price=Decimal("99.00"),
+            stock=100,
+            lock_stock=0,
+            image="https://img.example.com/sku.png",
             status=1,
         ),
         Coupon(

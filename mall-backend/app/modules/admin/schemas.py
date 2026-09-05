@@ -151,6 +151,47 @@ class UpdateProductStatusRequest(BaseModel):
     status: int = Field(ge=0, le=1)
 
 
+class ProductSkuAdminItemOut(BaseModel):
+    """后台商品 SKU 项。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    sku_code: str
+    attrs: list[dict] = Field(default_factory=list)
+    sku_text: str
+    price: Decimal
+    stock: int
+    lock_stock: int
+    image: str | None = None
+    status: int
+
+
+class CreateProductSkuRequest(BaseModel):
+    """创建 SKU。"""
+
+    sku_code: str = Field(min_length=1, max_length=64)
+    attrs: list[dict] = Field(default_factory=list)
+    sku_text: str = Field(min_length=1, max_length=128)
+    price: Decimal = Field(ge=0, default=Decimal("0.00"))
+    stock: int = Field(default=0, ge=0)
+    image: str | None = Field(default=None, max_length=512)
+    status: int = Field(default=1, ge=0, le=1)
+
+
+class UpdateProductSkuRequest(BaseModel):
+    """更新 SKU。"""
+
+    sku_code: str | None = Field(default=None, min_length=1, max_length=64)
+    attrs: list[dict] | None = None
+    sku_text: str | None = Field(default=None, min_length=1, max_length=128)
+    price: Decimal | None = Field(default=None, ge=0)
+    stock: int | None = Field(default=None, ge=0)
+    image: str | None = Field(default=None, max_length=512)
+    status: int | None = Field(default=None, ge=0, le=1)
+
+
 class CategoryAdminItemOut(BaseModel):
     """后台分类项。"""
 

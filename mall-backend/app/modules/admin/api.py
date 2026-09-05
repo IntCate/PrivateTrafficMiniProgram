@@ -17,6 +17,7 @@ from app.modules.admin.schemas import (
     CreateCategoryRequest,
     CreateCouponRequest,
     CreateProductRequest,
+    CreateProductSkuRequest,
     GrantCouponRequest,
     LoginRequest,
     ShipOrderRequest,
@@ -27,6 +28,7 @@ from app.modules.admin.schemas import (
     UpdateCouponRequest,
     UpdateMemberStatusRequest,
     UpdateProductRequest,
+    UpdateProductSkuRequest,
     UpdateProductStatusRequest,
 )
 
@@ -139,6 +141,50 @@ def do_delete_product(
     db: Session = Depends(get_db),
 ) -> dict:
     service.delete_product(db, product_id)
+    return ok({"deleted": True})
+
+
+# ---- 商品 SKU（admin/operator）----
+
+
+@router.get("/products/{product_id}/skus")
+def do_list_product_skus(
+    product_id: int,
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
+    db: Session = Depends(get_db),
+) -> dict:
+    return ok(service.list_product_skus(db, product_id))
+
+
+@router.post("/products/{product_id}/skus")
+def do_create_product_sku(
+    product_id: int,
+    body: CreateProductSkuRequest,
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
+    db: Session = Depends(get_db),
+) -> dict:
+    return ok(service.create_product_sku(db, product_id, body))
+
+
+@router.put("/products/{product_id}/skus/{sku_id}")
+def do_update_product_sku(
+    product_id: int,
+    sku_id: int,
+    body: UpdateProductSkuRequest,
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
+    db: Session = Depends(get_db),
+) -> dict:
+    return ok(service.update_product_sku(db, product_id, sku_id, body))
+
+
+@router.delete("/products/{product_id}/skus/{sku_id}")
+def do_delete_product_sku(
+    product_id: int,
+    sku_id: int,
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
+    db: Session = Depends(get_db),
+) -> dict:
+    service.delete_product_sku(db, product_id, sku_id)
     return ok({"deleted": True})
 
 

@@ -25,6 +25,7 @@ from app.modules.admin.schemas import (
     CreateCategoryRequest,
     CreateCouponRequest,
     CreateProductRequest,
+    CreateProductSkuRequest,
     DashboardSummaryOut,
     GrantCouponRequest,
     LoginOut,
@@ -33,6 +34,7 @@ from app.modules.admin.schemas import (
     OrderAdminItemOut,
     ProductAdminDetailOut,
     ProductAdminItemOut,
+    ProductSkuAdminItemOut,
     ShipOrderRequest,
     UpdateAdminStatusRequest,
     UpdateBannerRequest,
@@ -41,6 +43,7 @@ from app.modules.admin.schemas import (
     UpdateCouponRequest,
     UpdateMemberStatusRequest,
     UpdateProductRequest,
+    UpdateProductSkuRequest,
     UpdateProductStatusRequest,
 )
 from app.modules.after_sale.models import (
@@ -52,12 +55,18 @@ from app.modules.after_sale.models import (
 from app.modules.auth.models import Member
 from app.modules.coupon.models import Coupon, UserCoupon
 from app.modules.order.models import (
+    ORDER_STATUS_COMPLETED,
     ORDER_STATUS_PAID,
     ORDER_STATUS_PENDING,
     ORDER_STATUS_SHIPPED,
     Order,
 )
-from app.modules.product.models import Banner, Category, Product
+from app.modules.product.models import (
+    Banner,
+    Category,
+    Product,
+    ProductSku,
+)
 
 logger = logging.getLogger("app.modules.admin.service")
 
@@ -228,6 +237,71 @@ def delete_product(db: Session, product_id: int) -> None:
     if not product or product.deleted:
         raise BizException(404, "商品不存在")
     product.deleted = True
+    db.commit()
+
+
+def _ensure_product(db: Session, product_id: int) -> None:
+    """校验商品存在且未删除。"""
+    product = db.get(Product, product_id)
+    if not product or product.deleted:
+        raise BizException(404, "商品不存在")
+
+
+def list_product_skus(db: Session, product_id: int) -> dict:
+    """商品 SKU 列表（含已删除 SKU 一并维护展示）。"""
+    _ensure_product(db, product_id)
+    rows = list(
+        db.scalars(
+            select(ProductSku)
+            .where(ProductSku.product_id == product_id, ProductSku.deleted == False)  # noqa: E712
+            .order_by(ProductSku.id.asc())
+        )
+    )
+    return {"list": [ProductSkuAdminItemOut.model_validate(r).model_dump() for r in rows]}
+
+
+def create_product_sku(
+    db: Session, product_id: int, body: CreateProductSkuRequest
+) -> dict:
+    """创建 SKU。"""
+    _ensure_product(db, product_id)
+    sku = ProductSku(
+        product_id=product_id,
+        sku_code=body.sku_code,
+        attrs=body.attrs or [],
+        sku_text=body.sku_text,
+        price=body.price,
+        stock=body.stock,
+        image=body.image,
+        status=body.status,
+    )
+    db.add(sku)
+    db.commit()
+    return ProductSkuAdminItemOut.model_validate(sku).model_dump()
+
+
+def update_product_sku(
+    db: Session, product_id: int, sku_id: int, body: UpdateProductSkuRequest
+) -> dict:
+    """更新 SKU。"""
+    _ensure_product(db, product_id)
+    sku = db.get(ProductSku, sku_id)
+    if not sku or sku.deleted or sku.product_id != product_id:
+        raise BizException(404, "SKU 不存在")
+    data = body.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(sku, field, value)
+    db.commit()
+    return ProductSkuAdminItemOut.model_validate(sku).model_dump()
+
+
+def delete_product_sku(db: Session, product_id: int, sku_id: int) -> None:
+    """删除 SKU（软删）。"""
+    _ensure_product(db, product_id)
+    sku = db.get(ProductSku, sku_id)
+    if not sku or sku.deleted or sku.product_id != product_id:
+        raise BizException(404, "SKU 不存在")
+    sku.deleted = True
     db.commit()
 
 
@@ -489,7 +563,7 @@ def audit_after_sale(
     if not after_sale:
         raise BizException(404, "售后单不存在")
     if after_sale.status != AFTER_SALE_APPLYING:
-        raise BizException(1402, "售后单状态不允许审核")
+        raise BizException(1607, "售后单状态不允许审核")
     after_sale.status = AFTER_SALE_APPROVED if approve else AFTER_SALE_REJECTED
     after_sale.audit_remark = remark
     db.commit()
@@ -500,7 +574,7 @@ def dashboard_summary(db: Session) -> DashboardSummaryOut:
     """数据概览：销售额、订单量、会员数、商品数、待处理订单。"""
     total_sales = db.scalar(
         select(func.coalesce(func.sum(Order.pay_amount), 0)).where(
-            Order.status.in_([ORDER_STATUS_PAID, ORDER_STATUS_SHIPPED, "completed", "refund"])
+            Order.status.in_([ORDER_STATUS_PAID, ORDER_STATUS_SHIPPED, ORDER_STATUS_COMPLETED])
         )
     ) or Decimal("0.00")
     order_count = db.scalar(select(func.count(Order.id))) or 0
