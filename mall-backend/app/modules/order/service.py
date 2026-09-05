@@ -383,8 +383,17 @@ def _list_item_dto(order: Order, items: list[OrderItem]) -> dict:
         receiver=_receiver_dto(order),
         items=_order_item_dtos(items),
         create_time=_fmt_dt(order.created_at) or "",
+        pay_deadline=_pay_deadline(order),
         available_actions=_compute_actions(order.status),
     ).model_dump(by_alias=True)
+
+
+def _pay_deadline(order: Order) -> str | None:
+    """待支付订单的支付截止时间（ISO 字符串）；非 pending 返回 None。"""
+    if order.status != ORDER_STATUS_PENDING or order.created_at is None:
+        return None
+    deadline = order.created_at + timedelta(seconds=settings.order_timeout_seconds)
+    return deadline.isoformat()
 
 
 def _detail_dto(order: Order, items: list[OrderItem]) -> dict:

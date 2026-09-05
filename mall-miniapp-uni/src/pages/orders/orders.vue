@@ -20,7 +20,10 @@
             <view v-if="filteredOrders(tab.status).length" class="order-card" v-for="order in filteredOrders(tab.status)" :key="order.id" @click="goDetail(order.id)">
               <view class="order-header">
                 <text class="order-no">订单号 {{ order.orderNo }}</text>
-                <text class="order-status">{{ order.statusText }}</text>
+                <view class="order-status-wrap">
+                  <text v-if="order.status === 'pending' && order.payDeadline" class="order-countdown">剩余 {{ countdownText(order.id) }}</text>
+                  <text class="order-status">{{ order.statusText }}</text>
+                </view>
               </view>
               <view class="order-item" v-for="(item, index) in order.items" :key="index">
                 <image class="order-image" :src="item.image" mode="aspectFill" />
@@ -62,7 +65,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
 import { useOrderActions } from '@/composables/useOrderActions';
 
@@ -76,6 +79,36 @@ const tabs = [
 
 const activeTab = ref(0);
 const orders = ref([]);
+const countdowns = ref({});
+let countdownTimer = null;
+
+const pad = (n) => String(n).padStart(2, '0');
+
+const formatRemain = (ms) => {
+  if (ms <= 0) return '00:00:00';
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+};
+
+const countdownText = (id) => countdowns.value[id] || '';
+
+const startCountdowns = () => {
+  if (countdownTimer) clearInterval(countdownTimer);
+  const tick = () => {
+    const next = {};
+    orders.value.forEach((order) => {
+      if (order.status === 'pending' && order.payDeadline) {
+        next[order.id] = formatRemain(new Date(order.payDeadline).getTime() - Date.now());
+      }
+    });
+    countdowns.value = next;
+  };
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+};
 
 const filteredOrders = (status) => {
   if (!status) return orders.value;
@@ -88,6 +121,7 @@ const reload = async () => {
   try {
     const data = await orderApi.list({ page: 1, pageSize: 50 });
     orders.value = data.list;
+    startCountdowns();
   } catch (e) {
     if (e.code !== 401) {
       uni.showToast({ title: e.message || '订单加载失败', icon: 'none' });
@@ -104,6 +138,10 @@ onLoad((options) => {
 
 onShow(() => {
   reload();
+});
+
+onUnload(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
 });
 
 const switchTab = (index) => {
@@ -206,6 +244,18 @@ const { payOrder, cancelOrder, refundLabel, refundOrder, remindShip, confirmRece
   font-size: 13px;
   font-weight: 600;
   color: $mall-primary;
+}
+
+.order-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-countdown {
+  font-size: 11px;
+  color: $mall-primary;
+  font-weight: 500;
 }
 
 .order-item {

@@ -483,6 +483,16 @@ def test_list_orders_filter_pagination(env: tuple[FakeDb, FakeCartRepo, dict]) -
     assert paged["hasMore"] is True
 
 
+def test_list_orders_pay_deadline(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
+    db, _, _ = env
+    # pending 订单返回支付截止时间（created_at + 2h）
+    pending = service.list_orders(db, 1, "pending", 1, 10)["list"][0]
+    assert pending["payDeadline"] == "2026-09-01T12:00:00"
+    # 非 pending 订单 payDeadline 为 None
+    paid = service.list_orders(db, 1, "paid", 1, 10)["list"][0]
+    assert paid["payDeadline"] is None
+
+
 def test_order_stats(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
     db, _, _ = env
     stats = service.order_stats(db, 1)

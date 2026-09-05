@@ -88,6 +88,7 @@ class OrderListItemOut(CamelModel):
     receiver: ReceiverOut
     items: list[OrderItemOut]
     create_time: str
+    pay_deadline: str | None = None
     available_actions: list[str]
 
 

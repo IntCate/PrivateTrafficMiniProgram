@@ -238,6 +238,7 @@ const orderDto = (order, { detail = false } = {}) => {
       image: item.image,
     })),
     createTime: order.createTime,
+    payDeadline: order.status === 'pending' ? order.payDeadline : null,
   };
   if (detail) {
     dto.statusDesc = STATUS_DESC[order.status];
@@ -409,6 +410,7 @@ function reset() {
       receiver: receiverDto(defaultAddress),
       payType: null, payTime: null, shipTime: null, finishTime: null,
       createTime: '2026-08-30 14:20:03',
+      payDeadline: '2026-08-30T16:20:03',
     },
     {
       id: ++orderSeq,

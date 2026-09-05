@@ -4,6 +4,7 @@
       <!-- 状态横幅 -->
       <view class="status-banner">
         <text class="status-title">{{ order.statusText }}</text>
+        <text v-if="order.status === 'pending' && order.payDeadline" class="status-countdown">剩余支付时间 {{ remainText }}</text>
         <text class="status-desc">{{ order.statusDesc }}</text>
       </view>
 
@@ -79,11 +80,13 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
 import { useOrderActions } from '@/composables/useOrderActions';
+import { useCountdown } from '@/composables/useCountdown';
 
 const order = ref(null);
+const { remainText, start: startCountdown, stop: stopCountdown } = useCountdown();
 let orderId = null;
 
 onLoad((options) => {
@@ -91,10 +94,19 @@ onLoad((options) => {
   reload();
 });
 
+onUnload(() => {
+  stopCountdown();
+});
+
 const reload = async () => {
   try {
     const data = await orderApi.detail(orderId);
     order.value = data;
+    if (data.status === 'pending' && data.payDeadline) {
+      startCountdown(data.payDeadline);
+    } else {
+      stopCountdown();
+    }
   } catch (e) {
     if (e.code === 404) {
       order.value = null;
@@ -149,6 +161,14 @@ const { payOrder, cancelOrder, refundLabel, refundOrder, remindShip, confirmRece
   font-size: 20px;
   font-weight: bold;
   color: $mall-foreground;
+}
+
+.status-countdown {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: $mall-primary;
+  margin-top: 6px;
 }
 
 .status-desc {
