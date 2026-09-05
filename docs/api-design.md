@@ -954,21 +954,21 @@ PUT /api/member/profile
 ```json
 {
   "nickname": "快乐购物家",
-  "avatar": "https://cdn.example.com/avatars/xxx.jpg"
+  "avatar": "/uploads/avatar/xxx.jpg"
 }
 ```
 
 响应 `data`：
 
 ```json
-{ "nickname": "快乐购物家", "avatar": "https://cdn.example.com/avatars/xxx.jpg" }
+{ "nickname": "快乐购物家", "avatar": "/uploads/avatar/xxx.jpg" }
 ```
 
-业务规则（对应 PRD §4.9 合规规则，P0 口径）：
+业务规则（对应 PRD §4.9 合规规则）：
 
-- 头像：**P0 校验** **`http(s)`** **URL 即可**（无上传接口，微信登录头像为第三方 CDN 域名）；自有存储域白名单校验（先走上传接口）随上传接口上线后收紧，见 `docs/known-issues.md` 条目
+- 头像：必须是**本平台自有存储域的相对路径**（`/uploads/` 开头），上传经 `POST /api/upload`（category=`avatar`）得到，见 §12.3。**外域** **`http(s)`** **链接一律拒绝**，返回 `1003`
 
-- 昵称：长度 1-20 字返回 `1003`；敏感词过滤 P0 暂无词库暂不启用（见 `docs/known-issues.md` 条目）
+- 昵称：长度 1-20 字返回 `1003`；敏感词过滤暂无词库暂不启用（见 `docs/known-issues.md` 条目）
 
 - 仅可更新本人资料；成功后同步 `member` 表并返回最新资料
 
@@ -1141,13 +1141,13 @@ GET /api/after-sales/{id}
 POST /api/upload
 ```
 
-- 鉴权：会员 `Authorization: Bearer`；`multipart/form-data`，字段名 `file`
+- 鉴权：会员 `Authorization: Bearer`；`multipart/form-data`，字段名 `file`，可选表单字段 `category`（用途→存储目录，白名单 `after_sale`（默认）/ `avatar`，非法返回 `400`）
 
 - 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
 
-- 返回 `data.url` 相对路径（`/uploads/after_sale/{uuid}.ext`），经 `/uploads` 静态挂载访问，小程序预览时拼接 `BASE_URL`
+- 返回 `data.url` 相对路径（`/uploads/{category}/{uuid}.ext`），经 `/uploads` 静态挂载访问，小程序预览时拼接 `BASE_URL`
 
-- 用于售后凭证 `images`（最多 6 张）；前端 `pages/after-sale/apply.vue` 上传后回填 URL 一并提交
+- 用途：售后凭证 `images`（category=`after_sale`，最多 6 张，前端 `pages/after-sale/apply.vue` 上传后回填 URL 一并提交）；头像（category=`avatar`，前端 `pages/me/me.vue` 用 `chooseAvatar` 选图后上传，见 §11.2）
 
 ***
 

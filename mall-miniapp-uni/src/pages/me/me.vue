@@ -5,7 +5,7 @@
       <view id="user-card" class="user-card">
         <view class="user-main" @click="openEdit">
           <view class="avatar">
-            <image v-if="member.avatar" class="avatar-img" :src="member.avatar" mode="aspectFill" />
+            <image v-if="member.avatar" class="avatar-img" :src="toAbs(member.avatar)" mode="aspectFill" />
             <uni-icons v-else type="person" size="28" color="#FFFFFF" />
           </view>
           <view class="user-info">
@@ -106,21 +106,39 @@
       </view>
     </view>
 
-    <!-- 资料编辑弹层 -->
+    <!-- 资料编辑弹层（头像居上横幅式） -->
     <view v-if="showEdit" class="modal-mask" @click="closeEdit">
-      <view class="modal-card" @click.stop>
-        <text class="modal-title">编辑资料</text>
-        <view class="form-item">
-          <text class="form-label">昵称</text>
-          <input class="form-input" type="text" maxlength="20" v-model="editNickname" placeholder="请输入昵称（1-20 字）" />
+      <view class="modal-card" :style="modalCardStyle" @click.stop>
+        <!-- 横幅头像区 -->
+        <view class="edit-banner">
+          <image v-if="editAvatar" class="banner-bg-img" :src="toAbs(editAvatar)" mode="aspectFill" />
+          <view class="banner-mask"></view>
+          <view class="banner-deco deco-1"></view>
+          <view class="banner-deco deco-2"></view>
+          <view class="banner-avatar-wrap">
+            <button class="banner-avatar" open-type="chooseAvatar" @chooseavatar="onChooseAvatar" @click.stop>
+              <image v-if="editAvatar" class="banner-avatar-img" :src="toAbs(editAvatar)" mode="aspectFill" />
+              <view v-else class="banner-avatar-empty">
+                <uni-icons type="person" size="30" color="#FFFFFF" />
+              </view>
+              <view class="avatar-camera">
+                <uni-icons type="camera" size="12" color="#FFFFFF" />
+              </view>
+            </button>
+            <view class="banner-hint">点击更换头像</view>
+          </view>
         </view>
-        <view class="form-item">
-          <text class="form-label">头像</text>
-          <input class="form-input" type="text" v-model="editAvatar" placeholder="请输入头像图片 URL" />
-        </view>
-        <view class="modal-actions">
-          <view class="modal-btn ghost" @click="closeEdit">取消</view>
-          <view class="modal-btn primary" @click="saveProfile">保存</view>
+        <!-- 表单 -->
+        <view class="edit-body">
+          <view class="edit-label">昵称</view>
+          <view class="edit-input-wrap">
+            <input class="edit-input" type="nickname" maxlength="20" v-model="editNickname" :cursor-spacing="16" :adjust-position="true" placeholder="请输入昵称（1-20 字）" placeholder-style="color:#A8A8A8" />
+            <text class="input-count">{{ editNickname.length }}/20</text>
+          </view>
+          <view class="edit-actions">
+            <view class="edit-btn ghost" @click="closeEdit">取消</view>
+            <view class="edit-btn primary" @click="saveProfile">保存</view>
+          </view>
         </view>
       </view>
     </view>
@@ -128,9 +146,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { memberApi } from '@/api';
+import { BASE_URL, TOKEN_KEY } from '@/api/config';
 
 const member = ref({ nickname: '', avatar: '', memberLevelText: '', couponCount: 0, points: 0 });
 const pendingCount = ref(0);
@@ -168,11 +187,61 @@ const goPage = (url) => {
 const openEdit = () => {
   editNickname.value = member.value.nickname;
   editAvatar.value = member.value.avatar || '';
+  keyboardOffset.value = 0;
+  // 监听键盘高度，弹层上移防遮挡
+  if (typeof uni.onKeyboardHeightChange === 'function') {
+    offKeyboardHeight = uni.onKeyboardHeightChange((res) => {
+      keyboardOffset.value = (res && res.height) || 0;
+    });
+  }
   showEdit.value = true;
 };
 
 const closeEdit = () => {
+  if (offKeyboardHeight) {
+    offKeyboardHeight();
+    offKeyboardHeight = null;
+  }
+  keyboardOffset.value = 0;
   showEdit.value = false;
+};
+
+// 头像相对路径 → 可访问的完整 URL（售后凭证图同款）
+const toAbs = (url) => (url && url.startsWith('/uploads/') ? BASE_URL + url : url);
+
+// 键盘高度：监听键盘弹出，弹层上移避免输入框被遮挡（官方 onKeyboardHeightChange）
+const keyboardOffset = ref(0);
+let offKeyboardHeight = null;
+const modalCardStyle = computed(() => {
+  const ty = keyboardOffset.value > 0 ? -Math.round(keyboardOffset.value * 0.5) : 0;
+  return { transform: `translateY(${ty}px)` };
+});
+
+// 微信 chooseAvatar 选图 → 上传到本平台 /api/upload(avatar) → 得到 /uploads/avatar/ 相对路径
+const onChooseAvatar = (e) => {
+  const tempPath = e.detail && e.detail.avatarUrl;
+  if (!tempPath) return;
+  const token = uni.getStorageSync(TOKEN_KEY) || '';
+  uni.uploadFile({
+    url: `${BASE_URL}/api/upload`,
+    filePath: tempPath,
+    name: 'file',
+    formData: { category: 'avatar' },
+    header: token ? { Authorization: `Bearer ${token}` } : {},
+    success: (resp) => {
+      try {
+        const body = JSON.parse(resp.data);
+        if (body.code === 0) {
+          editAvatar.value = body.data.url;
+        } else {
+          uni.showToast({ title: body.message || '上传失败', icon: 'none' });
+        }
+      } catch {
+        uni.showToast({ title: '上传失败', icon: 'none' });
+      }
+    },
+    fail: () => uni.showToast({ title: '上传失败', icon: 'none' })
+  });
 };
 
 const saveProfile = async () => {
@@ -452,7 +521,7 @@ const contactService = () => {
   margin: 0 16px;
 }
 
-// 资料编辑弹层
+// 资料编辑弹层（头像居上横幅式）
 .modal-mask {
   position: fixed;
   top: 0;
@@ -467,72 +536,182 @@ const contactService = () => {
 }
 
 .modal-card {
-  width: 302px;
-  max-width: 86vw;
+  width: 316px;
+  max-width: 90vw;
   background-color: $mall-card;
-  border-radius: 16px;
-  padding: 20px 16px 16px;
+  border-radius: 20px;
+  overflow: hidden;
   box-shadow: $mall-shadow-2;
 }
 
-.modal-title {
-  display: block;
-  font-size: 16px;
-  font-weight: bold;
-  color: $mall-foreground;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.form-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid $mall-border;
-}
-
-.form-item + .form-item {
-  margin-top: 8px;
-}
-
-.form-label {
-  width: 40px;
-  flex-shrink: 0;
-  font-size: 13px;
-  color: $mall-foreground;
-}
-
-.form-input {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: $mall-foreground;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.modal-btn {
-  flex: 1;
-  height: 38px;
+// 横幅头像区
+.edit-banner {
+  position: relative;
+  height: 150px;
+  background: linear-gradient(135deg, $mall-primary-light, $mall-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
-  font-size: 14px;
+  padding-top: 8px;
+  overflow: hidden;
 }
 
-.modal-btn.primary {
+.banner-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(59, 110, 240, 0.45), rgba(44, 74, 200, 0.78));
+}
+
+.banner-deco {
+  position: absolute;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.16);
+  z-index: 1;
+}
+
+.deco-1 {
+  width: 120px;
+  height: 120px;
+  top: -40px;
+  right: -20px;
+}
+
+.deco-2 {
+  width: 80px;
+  height: 80px;
+  bottom: -30px;
+  left: -10px;
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+.banner-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.banner-avatar {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  background-color: $mall-card;
+  overflow: hidden;
+  padding: 0;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-avatar::after {
+  border: none;
+}
+
+.banner-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.banner-avatar-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6aa1f4, #3b6ef0);
+}
+
+.avatar-camera {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   background-color: $mall-primary;
-  color: $mall-primary-foreground;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+// 表单
+.edit-body {
+  padding: 16px 18px 18px;
+}
+
+.edit-label {
+  font-size: 13px;
+  color: $mall-muted-foreground;
+  margin-bottom: 8px;
+}
+
+.edit-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: $mall-background;
+  border-radius: 10px;
+  padding: 0 12px;
+  border: 1px solid $mall-border;
+}
+
+.edit-input {
+  flex: 1;
+  height: 40px;
+  font-size: 14px;
+  color: $mall-foreground;
+}
+
+.input-count {
+  font-size: 11px;
+  color: $mall-muted-foreground;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.edit-btn {
+  flex: 1;
+  height: 42px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.edit-btn.primary {
+  background: linear-gradient(135deg, $mall-primary-light, $mall-primary);
+  color: #ffffff;
   font-weight: 600;
 }
 
-.modal-btn.ghost {
+.edit-btn.ghost {
   border: 1px solid $mall-border;
   color: $mall-muted-foreground;
 }

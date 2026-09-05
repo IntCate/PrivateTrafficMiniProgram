@@ -98,12 +98,12 @@ def test_update_profile_ok(env: SimpleNamespace) -> None:
     member = env.member
     db = FakeDb()
     data = service.update_profile(
-        db, member, UpdateProfileRequest(nickname="新昵称", avatar="https://cdn.example.com/a.jpg")
+        db, member, UpdateProfileRequest(nickname="新昵称", avatar="/uploads/avatar/abc.png")
     )
     assert data.nickname == "新昵称"
-    assert data.avatar == "https://cdn.example.com/a.jpg"
+    assert data.avatar == "/uploads/avatar/abc.png"
     assert member.nickname == "新昵称"
-    assert member.avatar == "https://cdn.example.com/a.jpg"
+    assert member.avatar == "/uploads/avatar/abc.png"
     assert db.commits == 1
 
 
@@ -141,6 +141,25 @@ def test_update_profile_bad_avatar(env: SimpleNamespace) -> None:
             FakeDb(), env.member, UpdateProfileRequest(nickname="张三", avatar="not-a-url")
         )
     assert e.value.code == 1003
+
+
+def test_update_profile_foreign_avatar_rejected(env: SimpleNamespace) -> None:
+    """头像白名单：外域 http(s) URL 一律拒绝（known-issues #9）。"""
+    with pytest.raises(BizException) as e:
+        service.update_profile(
+            FakeDb(), env.member,
+            UpdateProfileRequest(nickname="张三", avatar="https://evil.example.com/x.png"),
+        )
+    assert e.value.code == 1003
+
+
+def test_update_profile_upload_path_ok(env: SimpleNamespace) -> None:
+    """头像白名单：自有 /uploads/ 路径放行。"""
+    member = env.member
+    data = service.update_profile(
+        FakeDb(), member, UpdateProfileRequest(nickname="张三", avatar="/uploads/after_sale/x.png")
+    )
+    assert data.avatar == "/uploads/after_sale/x.png"
 
 
 def test_update_profile_boundary_len20(env: SimpleNamespace) -> None:

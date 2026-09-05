@@ -42,13 +42,13 @@ def update_profile(
     """更新本人昵称/头像（对齐 api-design §11.2，仅可更新本人）。
 
     - 昵称 1-20 字，非法 1003（对齐 mock「昵称长度需为 1-20 字」）
-    - 头像 P0 校验 http(s) URL（对齐 mock「头像必须为有效的 URL」）；
-      自有存储域收紧随上传接口上线后处理（见 docs/known-issues.md）
+    - 头像必须为自有上传域的相对路径（`/uploads/` 开头，对齐 known-issues #9 白名单）：
+      仅接受本平台上传的图片，外域 http(s) 链接一律拒绝，非法 1003
     """
     if not (NICKNAME_MIN <= len(req.nickname) <= NICKNAME_MAX):
         raise BizException(1003, "昵称长度需为 1-20 字")
-    if req.avatar and not _is_http_url(req.avatar):
-        raise BizException(1003, "头像必须为有效的 URL")
+    if req.avatar and not req.avatar.startswith("/uploads/"):
+        raise BizException(1003, "头像必须为本平台上传的图片")
 
     member.nickname = req.nickname
     if req.avatar:
@@ -67,7 +67,3 @@ def _member_out(db: Session, member: Member) -> MemberOut:
         points=member.points or 0,
         coupon_count=UserCouponRepository(db).count_unused(member.id),
     )
-
-
-def _is_http_url(url: str) -> bool:
-    return url.lower().startswith(("http://", "https://"))

@@ -226,8 +226,8 @@ def test_after_sale_refund_type_follows_choice(
     assert o2.refund_type == "return"
 
 
-def test_upload_image(client: TestClient, db_session: Session) -> None:
-    """会员可上传图片，返回 /uploads/after_sale/ 相对 URL。"""
+def test_upload_image_default_after_sale(client: TestClient, db_session: Session) -> None:
+    """会员默认上传到 after_sale，返回 /uploads/after_sale/ 相对 URL。"""
     auth = {"Authorization": f"Bearer {_member_token(client)}"}
     resp = client.post(
         "/api/upload",
@@ -238,3 +238,30 @@ def test_upload_image(client: TestClient, db_session: Session) -> None:
     body = resp.json()
     assert body["code"] == 0
     assert body["data"]["url"].startswith("/uploads/after_sale/")
+
+
+def test_upload_image_avatar_category(client: TestClient, db_session: Session) -> None:
+    """上传头像用途 category=avatar → /uploads/avatar/ 相对 URL。"""
+    auth = {"Authorization": f"Bearer {_member_token(client)}"}
+    resp = client.post(
+        "/api/upload",
+        headers=auth,
+        data={"category": "avatar"},
+        files={"file": ("avatar.png", b"\x89PNG\r\n\x1a\n000", "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["code"] == 0
+    assert body["data"]["url"].startswith("/uploads/avatar/")
+
+
+def test_upload_image_invalid_category(client: TestClient, db_session: Session) -> None:
+    """非法上传用途 → 400。"""
+    auth = {"Authorization": f"Bearer {_member_token(client)}"}
+    resp = client.post(
+        "/api/upload",
+        headers=auth,
+        data={"category": "evil"},
+        files={"file": ("proof.png", b"\x89PNG\r\n\x1a\n000", "image/png")},
+    )
+    assert resp.status_code == 400
