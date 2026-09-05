@@ -112,3 +112,9 @@ def test_order_detail_reflects_after_sale_audit(
     # 小程序刷新详情看到审核通过
     after = client.get("/api/orders/1", headers=auth).json()["data"]
     assert after["statusDesc"] == "退款申请已通过，款项将原路退回"
+
+    # 小程序订单列表（售后/退款 tab）也应反映审核进度，而非固定"售后中"
+    lst = client.get("/api/orders?status=refund", headers=auth).json()["data"]
+    items = lst["list"] if isinstance(lst, dict) and "list" in lst else lst.get("items", [])
+    first = next(i for i in items if i["id"] == 1)
+    assert first["statusText"] == "已通过"

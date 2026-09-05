@@ -580,13 +580,40 @@ def list_orders(
     """订单列表（对齐 api-design §9.3 / test-cases B5-5）。"""
     rows, total = OrderRepository(db).list_by_user(user_id, status, page, page_size)
     grouped = _load_items(db, rows)
+    after_sale_text = _after_sale_text_by_order(db, rows)
+    items = []
+    for o in rows:
+        dto = _list_item_dto(o, grouped.get(o.id, []))
+        if o.status == "refund" and after_sale_text.get(o.id):
+            dto["statusText"] = after_sale_text[o.id]
+        items.append(dto)
     return OrderListOut(
-        items=[_list_item_dto(o, grouped.get(o.id, [])) for o in rows],
+        items=items,
         total=total,
         page=page,
         pageSize=page_size,
         hasMore=page * page_size < total,
     ).model_dump(by_alias=True)
+
+
+def _after_sale_text_by_order(db: Session, orders: list[Order]) -> dict[int, str]:
+    """批量查询 refund 订单的最新售后工单状态文案（order_id → statusText），供列表覆盖使用。"""
+    from app.modules.after_sale.models import AFTER_SALE_STATUS_TEXT, AfterSale
+
+    refund_ids = [o.id for o in orders if o.status == "refund"]
+    if not refund_ids:
+        return {}
+    # 每订单取最新一条工单：采用 id 最大的一行（状态覆盖口径同详情页）
+    rows = db.execute(
+        select(AfterSale.order_id, AfterSale.status)
+        .where(AfterSale.order_id.in_(refund_ids))
+        .order_by(AfterSale.id.desc())
+    ).all()
+    result: dict[int, str] = {}
+    for order_id, status in rows:
+        if order_id not in result:
+            result[order_id] = AFTER_SALE_STATUS_TEXT.get(status, "售后中")
+    return result
 
 
 def _get_owned_order(db: Session, user_id: int, order_id: int) -> Order:

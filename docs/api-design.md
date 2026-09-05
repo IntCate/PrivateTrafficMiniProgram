@@ -709,6 +709,7 @@ Query 参数：
 ```
 
 - `statusText` 映射：pending 待付款 / paid 待发货 / shipped 待收货 / completed 已完成 / refund 售后中 / cancelled 已取消
+  - `refund` 订单的 `statusText` 由最新售后工单状态动态覆盖：applying 申请中 / approved 已通过 / rejected 已驳回 / refunded 已退款 / closed 已关闭（避免售后列表固定在"售后中"，保证后台审核后小程序即时展示进度）
 
 - `payDeadline`：仅 `pending` 订单返回支付截止时间（`created_at + order_timeout_seconds`，默认 2 小时），其余状态为 `null`；前端据此渲染"剩余支付时间"倒计时（对应 `orders.vue` / `order-detail.vue`）
 
