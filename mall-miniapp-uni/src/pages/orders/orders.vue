@@ -110,7 +110,19 @@ const startCountdowns = () => {
   countdownTimer = setInterval(tick, 1000);
 };
 
+// 售后/退款 tab：让"申请中"（售后中）的单子排最前，其余按后端返回顺序（新到旧）
+const REFUND_PRIORITY = { '申请中': 0 };
+
 const filteredOrders = (status) => {
+  if (status === 'refund') {
+    return orders.value
+      .filter((order) => order.status === status)
+      .slice()
+      .sort(
+        (a, b) =>
+          (REFUND_PRIORITY[a.statusText] ?? 1) - (REFUND_PRIORITY[b.statusText] ?? 1)
+      );
+  }
   if (!status) return orders.value;
   return orders.value.filter((order) => order.status === status);
 };

@@ -131,7 +131,7 @@
 | B5-14a | 售后工单申请      | `POST /api/after-sales` 合法 / 订单不存在 / 非本人 / 状态非法 / 重复申请 | 成功生成 applying 工单（amount=实付金额）；`404`/`1403`/`1402`/`1606`    |
 | B5-14b | 售后单列表/详情    | 按 status 筛选 + 分页 / 详情                                  | 各状态正确，statusText 正确；详情不存在 `404`、非本人 `1403`                  |
 | B5-14c | 订单详情售后状态回传 | 申请售后后查订单详情 → 后台审核通过 → 再查订单详情/订单列表 | 申请后详情 `statusText=售后处理中`/`statusDesc=退款申请已提交…`；审核通过后详情 `statusDesc=退款申请已通过…`、**订单列表(refund tab) `statusText=已通过`**（端到端，验证小程序审核后即时更新） |
-| B5-14d | 售后角标与排序 | order1=refund+申请中、order2=refund+已通过 | 角标 `orderStats.refund` 只计"申请中"=1（非 2）；售后退款 tab 排序，申请中(order1) 排在已通过(order2) 前 |
+| B5-14d | 售后角标与排序 | order1=refund+申请中、order2=refund+已通过 | 角标 `orderStats.refund` 只计"申请中"=1（非 2）；后端 refund tab 排序 + 前端 `orders.vue` 客户端把"申请中"排前（申请中先于已通过） |
 
 ### B6 收藏 / B7 会员
 
