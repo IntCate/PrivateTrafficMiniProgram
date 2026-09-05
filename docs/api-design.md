@@ -693,6 +693,7 @@ Query 参数：
       "pointsUsed": 0,
       "payAmount": 299.00,
       "createTime": "2026-08-31 09:15:12",
+      "payDeadline": "2026-08-31 11:15:12",
       "items": [
         { "id": 9001, "productName": "城市慢跑鞋…", "skuText": "云雾白；40", "price": 299.00, "quantity": 1, "image": "https://..." }
       ],
@@ -708,6 +709,8 @@ Query 参数：
 ```
 
 - `statusText` 映射：pending 待付款 / paid 待发货 / shipped 待收货 / completed 已完成 / refund 售后中 / cancelled 已取消
+
+- `payDeadline`：仅 `pending` 订单返回支付截止时间（`created_at + order_timeout_seconds`，默认 2 小时），其余状态为 `null`；前端据此渲染"剩余支付时间"倒计时（对应 `orders.vue` / `order-detail.vue`）
 
 - `availableActions` 由服务端按状态计算（pay/cancel/remind/confirm/refund/buyAgain），前端据此渲染按钮，避免前端硬编码状态机（对应 `orders.vue`）；各状态动作集：pending\[pay/cancel/buyAgain]、paid\[remind/refund/buyAgain]、shipped\[confirm/refund/buyAgain]、completed\[refund/buyAgain]、cancelled/refund\[buyAgain]
 
@@ -736,6 +739,7 @@ GET /api/orders/{id}
   "shipTime": null,
   "finishTime": null,
   "createTime": "2026-08-31 09:15:12",
+  "payDeadline": "2026-08-31 11:15:12",
   "availableActions": ["pay", "cancel"]
 }
 ```

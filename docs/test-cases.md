@@ -118,7 +118,7 @@
 | B5-3a  | 直购预览        | `GET /api/orders/preview-direct?skuId&quantity`        | 返回单商品明细 + 地址列表；不写购物车                                        |
 | B5-3b  | 直购下单        | `POST /api/orders/direct`                              | 生成 pending 订单，不写/不删购物车项；无地址 `404`                           |
 | B5-4   | 创建订单        | 合法                                                     | 同事务：订单+明细+地址快照+库存预占+删除购物车项；金额校验失败 `1404`                    |
-| B5-5   | 订单列表筛选      | 按 status 筛选 + 分页                                       | 各状态正确；角标仅统计 pending/paid/shipped/refund                     |
+| B5-5   | 订单列表筛选      | 按 status 筛选 + 分页                                       | 各状态正确；角标仅统计 pending/paid/shipped/refund；pending 返回 `payDeadline`（created_at+2h），其余为 `null` |
 | B5-6   | 支付成功        | `POST /api/orders/{id}/pay` mock                       | pending→paid 且库存转实扣（`stock`/`lock_stock` 双扣）；重复支付 `409`     |
 | B5-7   | 取消回补        | 取消 pending                                             | cancelled + 释放锁定库存（`lock_stock -= qty`）；非 pending 取消 `1402` |
 | B5-8   | 提醒发货        | paid                                                   | `reminded:true`；非 paid `1402`                               |
