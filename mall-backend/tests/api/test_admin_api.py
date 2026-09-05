@@ -273,7 +273,7 @@ def test_create_category_ok(client: TestClient) -> None:
 
 def test_delete_category_ok(client: TestClient) -> None:
     token = _login(client, "admin", "Admin@123456")
-    resp = client.delete("/admin/api/categories/1", headers=_auth(token))
+    resp = client.delete("/admin/api/categories/2", headers=_auth(token))
     assert resp.json()["code"] == 0
 
 
