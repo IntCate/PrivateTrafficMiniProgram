@@ -599,11 +599,41 @@ def _get_owned_order(db: Session, user_id: int, order_id: int) -> Order:
     return order
 
 
+def _apply_after_sale_progress(db: Session, order_id: int, dto: dict) -> None:
+    """refund 订单按最新售后工单状态覆盖状态文案：申请中/已通过/已驳回。
+
+    后台审核通过（approved）/驳回（rejected）后，小程序刷新订单详情即可看到更新。
+    """
+    from app.modules.after_sale.models import (
+        AFTER_SALE_APPLYING,
+        AFTER_SALE_APPROVED,
+        AFTER_SALE_REJECTED,
+        AfterSale,
+    )
+
+    item = db.scalars(
+        select(AfterSale)
+        .where(AfterSale.order_id == order_id)
+        .order_by(AfterSale.id.desc())
+    ).first()
+    if item is None:
+        return
+    dto["statusText"] = "售后处理中"
+    dto["statusDesc"] = {
+        AFTER_SALE_APPLYING: "退款申请已提交，请耐心等待平台审核",
+        AFTER_SALE_APPROVED: "退款申请已通过，款项将原路退回",
+        AFTER_SALE_REJECTED: "退款申请未通过：" + (item.audit_remark or "请查看平台审核意见"),
+    }.get(item.status, "")
+
+
 def get_order_detail(db: Session, user_id: int, order_id: int) -> dict:
     """订单详情（对齐 api-design §9.4）。"""
     order = _get_owned_order(db, user_id, order_id)
     items = OrderItemRepository(db).list_by_order_ids([order.id])
-    return _detail_dto(order, items)
+    dto = _detail_dto(order, items)
+    if order.status == "refund":
+        _apply_after_sale_progress(db, order.id, dto)
+    return dto
 
 
 def pay_order(db: Session, user_id: int, order_id: int, pay_type: str = "mock") -> dict:

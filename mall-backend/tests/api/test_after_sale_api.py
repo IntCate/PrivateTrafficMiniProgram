@@ -75,3 +75,40 @@ def test_after_sale_visible_in_admin(
     assert lst_body["code"] == 0
     ids = [item["id"] for item in lst_body["data"]["list"]]
     assert after_sale.id in ids
+
+
+def test_order_detail_reflects_after_sale_audit(
+    client: TestClient, db_session: Session
+) -> None:
+    """后台审核通过后，小程序订单详情应反映最新售后状态（回归：此前不更新）。"""
+    db_session.query(AfterSale).delete()
+    db_session.commit()
+
+    member_token = _member_token(client)
+    auth = {"Authorization": f"Bearer {member_token}"}
+
+    resp = client.post(
+        "/api/after-sales",
+        headers=auth,
+        json={"orderId": 1, "type": "refund", "reason": "商品破损"},
+    )
+    assert resp.status_code == 200
+    after_sale_id = int(resp.json()["data"]["id"])
+
+    # 申请后：待审核
+    before = client.get("/api/orders/1", headers=auth).json()["data"]
+    assert before["statusText"] == "售后处理中"
+    assert before["statusDesc"] == "退款申请已提交，请耐心等待平台审核"
+
+    # 后台审核通过
+    audit = client.put(
+        f"/admin/api/after-sales/{after_sale_id}/audit",
+        headers=_admin_auth(client),
+        json={"approve": True, "remark": "同意退款"},
+    )
+    assert audit.status_code == 200
+    assert audit.json()["code"] == 0
+
+    # 小程序刷新详情看到审核通过
+    after = client.get("/api/orders/1", headers=auth).json()["data"]
+    assert after["statusDesc"] == "退款申请已通过，款项将原路退回"

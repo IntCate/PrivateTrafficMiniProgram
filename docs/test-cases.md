@@ -130,6 +130,7 @@
 | B5-14  | 售后/退款申请     | `POST /api/after-sales`（统一入口）paid/shipped/completed  | 生成 applying 工单 + 订单联动转 refund + 回补已实扣库存（`stock += qty`）+ 记录 `refund_reason`/`refund_type`/`refund_time`；非三态 `1402`；**后台售后列表可见**（端到端，旧 `/orders/{id}/refund` 已下线） |
 | B5-14a | 售后工单申请      | `POST /api/after-sales` 合法 / 订单不存在 / 非本人 / 状态非法 / 重复申请 | 成功生成 applying 工单（amount=实付金额）；`404`/`1403`/`1402`/`1606`    |
 | B5-14b | 售后单列表/详情    | 按 status 筛选 + 分页 / 详情                                  | 各状态正确，statusText 正确；详情不存在 `404`、非本人 `1403`                  |
+| B5-14c | 订单详情售后状态回传 | 申请售后后查订单详情 → 后台审核通过 → 再查订单详情 | 申请后 `statusText=售后处理中`/`statusDesc=退款申请已提交…`；审核通过后 `statusDesc=退款申请已通过，款项将原路退回`（端到端，验证小程序审核后即时更新） |
 
 ### B6 收藏 / B7 会员
 

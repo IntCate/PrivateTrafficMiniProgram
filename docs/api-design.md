@@ -746,6 +746,8 @@ GET /api/orders/{id}
 
 - `statusDesc` 文案由服务端下发（对应前端 `statusDescMap`，避免两端文案漂移）
 
+- `status` 为 `refund` 时，详情页按最新售后工单状态动态覆盖 `statusText`/`statusDesc`（校验后台审核后小程序即时更新）：`statusText` 恒为"售后处理中"；`statusDesc` 依工单状态 —— applying"退款申请已提交，请耐心等待平台审核" / approved"退款申请已通过，款项将原路退回" / rejected"退款申请未通过：{auditRemark}"（未通过由后台审核意见 `audit_remark` 拼接）
+
 - `availableActions` 同 §9.3，按状态计算（含 refund）；订单详情页 `order-detail.vue` 据此渲染底部操作按钮
 
 ### 9.5 支付订单
@@ -788,7 +790,7 @@ POST /api/orders/{id}/cancel
 
 统一售后入口为 `POST /api/after-sales`（见 §12.1）。申请成功后：生成 `applying` 售后工单，并联动订单置 `refund`、回补已实扣库存、记录退款字段（`refund_reason` / `refund_type` / `refund_time`）。
 
-> **旧接口 `POST /api/orders/{id}/refund` 已下线**。此前它只改订单状态、不建售后工单，导致后台售后列表查不到记录；小程序现已统一走 §12.1 工单制，后台可见工单。
+> **旧接口** **`POST /api/orders/{id}/refund`** **已下线**。此前它只改订单状态、不建售后工单，导致后台售后列表查不到记录；小程序现已统一走 §12.1 工单制，后台可见工单。
 
 业务规则：
 
