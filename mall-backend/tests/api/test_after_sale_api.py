@@ -96,9 +96,9 @@ def test_order_detail_reflects_after_sale_audit(
     assert resp.status_code == 200
     after_sale_id = int(resp.json()["data"]["id"])
 
-    # 申请后：待审核
+    # 申请后：待审核（statusText 与列表一致为"申请中"）
     before = client.get("/api/orders/1", headers=auth).json()["data"]
-    assert before["statusText"] == "售后处理中"
+    assert before["statusText"] == "申请中"
     assert before["statusDesc"] == "退款申请已提交，请耐心等待平台审核"
 
     # 后台审核通过
@@ -110,8 +110,9 @@ def test_order_detail_reflects_after_sale_audit(
     assert audit.status_code == 200
     assert audit.json()["code"] == 0
 
-    # 小程序刷新详情看到审核通过
+    # 小程序刷新详情看到审核通过（statusText 跟随售后状态）
     after = client.get("/api/orders/1", headers=auth).json()["data"]
+    assert after["statusText"] == "已通过"
     assert after["statusDesc"] == "退款申请已通过，款项将原路退回"
 
     # 小程序订单列表（售后/退款 tab）也应反映审核进度，而非固定"售后中"

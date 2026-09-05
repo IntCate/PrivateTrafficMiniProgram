@@ -748,7 +748,7 @@ GET /api/orders/{id}
 
 - `statusDesc` 文案由服务端下发（对应前端 `statusDescMap`，避免两端文案漂移）
 
-- `status` 为 `refund` 时，详情页按最新售后工单状态动态覆盖 `statusText`/`statusDesc`（校验后台审核后小程序即时更新）：`statusText` 恒为"售后处理中"；`statusDesc` 依工单状态 —— applying"退款申请已提交，请耐心等待平台审核" / approved"退款申请已通过，款项将原路退回" / rejected"退款申请未通过：{auditRemark}"（未通过由后台审核意见 `audit_remark` 拼接）
+- `status` 为 `refund` 时，详情页按最新售后工单状态动态覆盖 `statusText`/`statusDesc`（校验后台审核后小程序即时更新）：`statusText` 与列表口径一致 —— applying 申请中 / approved 已通过 / rejected 已驳回 / refunded 已退款 / closed 已关闭；`statusDesc` 依工单状态 —— applying"退款申请已提交，请耐心等待平台审核" / approved"退款申请已通过，款项将原路退回" / rejected"退款申请未通过：{auditRemark}"（未通过由后台审核意见 `audit_remark` 拼接）/ refunded"退款已完成，款项已原路退回"
 
 - `availableActions` 同 §9.3，按状态计算（含 refund）；订单详情页 `order-detail.vue` 据此渲染底部操作按钮
 

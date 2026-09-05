@@ -627,14 +627,18 @@ def _get_owned_order(db: Session, user_id: int, order_id: int) -> Order:
 
 
 def _apply_after_sale_progress(db: Session, order_id: int, dto: dict) -> None:
-    """refund 订单按最新售后工单状态覆盖状态文案：申请中/已通过/已驳回。
+    """refund 订单按最新售后工单状态覆盖状态文案。
 
     后台审核通过（approved）/驳回（rejected）后，小程序刷新订单详情即可看到更新。
+    `statusText` 与列表口径一致（见 api-design §9.3：申请中/已通过/已驳回/已退款/已关闭），
+    `statusDesc` 提供详情页的补充说明，避免同笔售后在列表与详情显示不同状态。
     """
     from app.modules.after_sale.models import (
         AFTER_SALE_APPLYING,
         AFTER_SALE_APPROVED,
+        AFTER_SALE_REFUNDED,
         AFTER_SALE_REJECTED,
+        AFTER_SALE_STATUS_TEXT,
         AfterSale,
     )
 
@@ -645,11 +649,12 @@ def _apply_after_sale_progress(db: Session, order_id: int, dto: dict) -> None:
     ).first()
     if item is None:
         return
-    dto["statusText"] = "售后处理中"
+    dto["statusText"] = AFTER_SALE_STATUS_TEXT.get(item.status, "售后中")
     dto["statusDesc"] = {
         AFTER_SALE_APPLYING: "退款申请已提交，请耐心等待平台审核",
         AFTER_SALE_APPROVED: "退款申请已通过，款项将原路退回",
         AFTER_SALE_REJECTED: "退款申请未通过：" + (item.audit_remark or "请查看平台审核意见"),
+        AFTER_SALE_REFUNDED: "退款已完成，款项已原路退回",
     }.get(item.status, "")
 
 

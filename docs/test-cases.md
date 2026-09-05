@@ -110,28 +110,28 @@
 
 > 状态：B5-1 \~ B5-14 已实现（29 条单测 + 真实 MySQL 端到端联调通过）。
 
-| #      | 单向          | 输入                                                     | 预期                                                          |
-| ------ | ----------- | ------------------------------------------------------ | ----------------------------------------------------------- |
-| B5-1   | 结算预览        | 勾选/传入 `cartItemIds`                                    | `items/amounts/addresses` 正确；勾选为空返回 `400`                   |
-| B5-2   | 预览含失效项      | 勾选下架/0 库存项                                             | `1203`（`data` 带 `unavailables`）                             |
-| B5-3   | 预览库存不足      | 勾选可售但数量超库存                                             | `1104`                                                      |
-| B5-3a  | 直购预览        | `GET /api/orders/preview-direct?skuId&quantity`        | 返回单商品明细 + 地址列表；不写购物车                                        |
-| B5-3b  | 直购下单        | `POST /api/orders/direct`                              | 生成 pending 订单，不写/不删购物车项；无地址 `404`                           |
-| B5-4   | 创建订单        | 合法                                                     | 同事务：订单+明细+地址快照+库存预占+删除购物车项；金额校验失败 `1404`                    |
-| B5-5   | 订单列表筛选      | 按 status 筛选 + 分页                                       | 各状态正确；角标仅统计 pending/paid/shipped/refund；pending 返回 `payDeadline`（created_at+2h），其余为 `null` |
-| B5-6   | 支付成功        | `POST /api/orders/{id}/pay` mock                       | pending→paid 且库存转实扣（`stock`/`lock_stock` 双扣）；重复支付 `409`     |
-| B5-7   | 取消回补        | 取消 pending                                             | cancelled + 释放锁定库存（`lock_stock -= qty`）；非 pending 取消 `1402` |
-| B5-8   | 提醒发货        | paid                                                   | `reminded:true`；非 paid `1402`                               |
-| B5-9   | 确认收货        | shipped                                                | completed + 积分累加；非 shipped `1402`                           |
-| B5-10  | 状态机非法流转     | 越级操作                                                   | `1402` 订单状态不允许当前操作                                          |
-| B5-11  | 越权订单        | 访问他人订单                                                 | `1403` 订单归属不匹配                                              |
-| B5-12  | 再次购买        | `buy-again`                                            | 生成新 pending 订单；无地址/空商品 `400`                                |
-| B5-13  | 订单不存在/并发锁库存 | 不存在 id / 并发下单                                          | `404` / `1104` 或 `1406` 库存锁定失败                              |
-| B5-14  | 售后/退款申请     | `POST /api/after-sales`（统一入口）paid/shipped/completed  | 生成 applying 工单 + 订单联动转 refund + 回补已实扣库存（`stock += qty`）+ 记录 `refund_reason`/`refund_type`/`refund_time`；非三态 `1402`；**后台售后列表可见**（端到端，旧 `/orders/{id}/refund` 已下线） |
-| B5-14a | 售后工单申请      | `POST /api/after-sales` 合法 / 订单不存在 / 非本人 / 状态非法 / 重复申请 | 成功生成 applying 工单（amount=实付金额）；`404`/`1403`/`1402`/`1606`    |
-| B5-14b | 售后单列表/详情    | 按 status 筛选 + 分页 / 详情                                  | 各状态正确，statusText 正确；详情不存在 `404`、非本人 `1403`                  |
-| B5-14c | 订单详情售后状态回传 | 申请售后后查订单详情 → 后台审核通过 → 再查订单详情/订单列表 | 申请后详情 `statusText=售后处理中`/`statusDesc=退款申请已提交…`；审核通过后详情 `statusDesc=退款申请已通过…`、**订单列表(refund tab) `statusText=已通过`**（端到端，验证小程序审核后即时更新） |
-| B5-14d | 售后角标与排序 | order1=refund+申请中、order2=refund+已通过 | 角标 `orderStats.refund` 只计"申请中"=1（非 2）；后端 refund tab 排序 + 前端 `orders.vue` 客户端把"申请中"排前（申请中先于已通过） |
+| #      | 单向          | 输入                                                     | 预期                                                                                                                                                               |
+| ------ | ----------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B5-1   | 结算预览        | 勾选/传入 `cartItemIds`                                    | `items/amounts/addresses` 正确；勾选为空返回 `400`                                                                                                                        |
+| B5-2   | 预览含失效项      | 勾选下架/0 库存项                                             | `1203`（`data` 带 `unavailables`）                                                                                                                                  |
+| B5-3   | 预览库存不足      | 勾选可售但数量超库存                                             | `1104`                                                                                                                                                           |
+| B5-3a  | 直购预览        | `GET /api/orders/preview-direct?skuId&quantity`        | 返回单商品明细 + 地址列表；不写购物车                                                                                                                                             |
+| B5-3b  | 直购下单        | `POST /api/orders/direct`                              | 生成 pending 订单，不写/不删购物车项；无地址 `404`                                                                                                                                |
+| B5-4   | 创建订单        | 合法                                                     | 同事务：订单+明细+地址快照+库存预占+删除购物车项；金额校验失败 `1404`                                                                                                                         |
+| B5-5   | 订单列表筛选      | 按 status 筛选 + 分页                                       | 各状态正确；角标仅统计 pending/paid/shipped/refund；pending 返回 `payDeadline`（created\_at+2h），其余为 `null`                                                                      |
+| B5-6   | 支付成功        | `POST /api/orders/{id}/pay` mock                       | pending→paid 且库存转实扣（`stock`/`lock_stock` 双扣）；重复支付 `409`                                                                                                          |
+| B5-7   | 取消回补        | 取消 pending                                             | cancelled + 释放锁定库存（`lock_stock -= qty`）；非 pending 取消 `1402`                                                                                                      |
+| B5-8   | 提醒发货        | paid                                                   | `reminded:true`；非 paid `1402`                                                                                                                                    |
+| B5-9   | 确认收货        | shipped                                                | completed + 积分累加；非 shipped `1402`                                                                                                                                |
+| B5-10  | 状态机非法流转     | 越级操作                                                   | `1402` 订单状态不允许当前操作                                                                                                                                               |
+| B5-11  | 越权订单        | 访问他人订单                                                 | `1403` 订单归属不匹配                                                                                                                                                   |
+| B5-12  | 再次购买        | `buy-again`                                            | 生成新 pending 订单；无地址/空商品 `400`                                                                                                                                     |
+| B5-13  | 订单不存在/并发锁库存 | 不存在 id / 并发下单                                          | `404` / `1104` 或 `1406` 库存锁定失败                                                                                                                                   |
+| B5-14  | 售后/退款申请     | `POST /api/after-sales`（统一入口）paid/shipped/completed    | 生成 applying 工单 + 订单联动转 refund + 回补已实扣库存（`stock += qty`）+ 记录 `refund_reason`/`refund_type`/`refund_time`；非三态 `1402`；**后台售后列表可见**（端到端，旧 `/orders/{id}/refund` 已下线） |
+| B5-14a | 售后工单申请      | `POST /api/after-sales` 合法 / 订单不存在 / 非本人 / 状态非法 / 重复申请 | 成功生成 applying 工单（amount=实付金额）；`404`/`1403`/`1402`/`1606`                                                                                                         |
+| B5-14b | 售后单列表/详情    | 按 status 筛选 + 分页 / 详情                                  | 各状态正确，statusText 正确；详情不存在 `404`、非本人 `1403`                                                                                                                       |
+| B5-14c | 订单详情售后状态回传  | 申请售后后查订单详情 → 后台审核通过 → 再查订单详情/订单列表                      | 申请后详情/列表 `statusText=申请中`/`statusDesc=退款申请已提交…`；审核通过后详情/列表 `statusText=已通过`/`statusDesc=退款申请已通过…`（详情与列表口径一致，端到端验证审核后即时更新）                         |
+| B5-14d | 售后角标与排序     | order1=refund+申请中、order2=refund+已通过                    | 角标 `orderStats.refund` 只计"申请中"=1（非 2）；后端 refund tab 排序 + 前端 `orders.vue` 客户端把"申请中"排前（申请中先于已通过）                                                                   |
 
 ### B6 收藏 / B7 会员
 
