@@ -118,11 +118,11 @@
 
 - 下单即预占库存（`lock_stock += qty`），支付成功后 `stock -= qty` 并 `lock_stock -= qty`（见 database-design §6）。
 
-### 5.3 退款（订单级，P1）
+### 5.3 退款（售后工单制，P1）
 
-- `POST /api/orders/{id}/refund`（api-design §9.7）先落 `orders` 表（置 status=refund + refund\_\* 字段）；
+- 统一售后入口为 `POST /api/after-sales`（api-design §12.1）：申请成功后生成 `applying` 售后工单落 `after_sale` 表，并联动订单置 `refund`、记录 `refund_*` 字段、回补已实扣库存（原 P0 轻量级 `POST /api/orders/{id}/refund` 已下线，不再使用）；
 
-- 真实资金退回走微信退款接口，落 `after_sale` 工单（P1 扩展）。
+- 真实资金退回走微信退款接口，审核通过后由管理后台触发。
 
 ***
 

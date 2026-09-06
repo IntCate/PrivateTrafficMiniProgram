@@ -1,6 +1,6 @@
 """订单模块定时任务：超时未支付订单自动关闭。
 
-对齐 PRD §4.2 / api-design §16.4：超时未支付（默认 30 分钟）由定时任务关闭订单并回补 lock_stock。
+对齐 PRD §4.2 / api-design §16.4：超时未支付（默认 2 小时）由定时任务关闭订单并回补 lock_stock。
 """
 from __future__ import annotations
 

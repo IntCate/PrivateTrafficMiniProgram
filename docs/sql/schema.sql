@@ -9,8 +9,8 @@
 -- 注意：
 --   * 图片 URL 为前端相对路径占位（/static/...），部署时替换为真实 CDN 地址
 --   * 初始化脚本含 DROP TABLE，仅在空库/重建场景使用
---   * 与 database-design.md §3.3 的索引差异：product 表字段清单无 sort，
---     故 idx_category_status 使用 (category_id, status)，不再含 sort（文档笔误，字段清单为准）
+--   * 与 database-design.md §3.3 一致：product 表字段清单无 sort，
+--     故 idx_category_status 使用 (category_id, status)
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -380,6 +380,7 @@ CREATE TABLE `sys_config` (
   `config_key`   VARCHAR(64)     NOT NULL COMMENT '配置键',
   `config_value` TEXT            NOT NULL COMMENT '配置值（JSON 兼容）',
   `remark`       VARCHAR(255)    DEFAULT NULL COMMENT '说明',
+  `created_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_config_key` (`config_key`)

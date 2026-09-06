@@ -11,14 +11,14 @@
 
 ### 1.1 基础信息
 
-| 项            | 约定                                                  |
-| ------------ | --------------------------------------------------- |
-| 协议           | HTTPS（生产）/ HTTP（本地联调）                               |
-| Base URL     | `https://{host}/api`                                |
-| Content-Type | `application/json; charset=utf-8`                   |
-| 数据格式         | JSON（UTF-8）                                         |
-| 时间格式         | 字符串 `yyyy-MM-dd HH:mm:ss`（北京时间，与前端 `formatTime` 一致） |
-| 金额           | 服务端返回数字（元），如 `299.00`                               |
+| 项            | 约定                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| 协议           | HTTPS（生产）/ HTTP（本地联调）                                                                                                          |
+| Base URL     | `https://{host}/api`                                                                                                           |
+| Content-Type | `application/json; charset=utf-8`                                                                                              |
+| 数据格式         | JSON（UTF-8）                                                                                                                    |
+| 时间格式         | 字符串 `yyyy-MM-dd HH:mm:ss`（北京时间，与前端 `formatTime` 一致）；`payDeadline` 为 ISO 8601（`yyyy-MM-ddTHH:mm:ss`，T 分隔，供前端 `new Date()` 直接解析） |
+| 金额           | 服务端返回数字（元），如 `299.00`                                                                                                          |
 
 > **手机号脱敏口径（定稿）**：地址管理（§8）、下单预览/回执（§9.1/§9.2）、订单详情（§9.4）返回本人完整手机号（本人数据，物流联系/编辑核对需要）；脱敏仅适用于对外可见场景（后台列表、日志、匿名接口），日志脱敏见 [logging.md](conventions/logging.md)。
 
@@ -567,6 +567,8 @@ Query 参数：
   ],
   "totalAmount": 299.00,
   "freight": 0.00,
+  "couponAmount": 0.00,
+  "pointsAmount": 0.00,
   "payAmount": 299.00,
   "addresses": [
     {
@@ -584,6 +586,8 @@ Query 参数：
 业务规则：
 
 - 服务端从购物车项核价（**不信任客户端价格**），金额口径与下单一致，支撑 `order-confirm.vue` 加载即渲染
+
+- `couponAmount`（优惠券抵扣金额）/ `pointsAmount`（积分抵扣金额）由服务端核算返回，未选券/未用积分时为 `0.00`
 
 - 商品已下架或可用库存为 0 → 返回 `1203`，`data` 携带不可售项列表
 
@@ -694,11 +698,10 @@ Query 参数：
       "pointsUsed": 0,
       "payAmount": 299.00,
       "createTime": "2026-08-31 09:15:12",
-      "payDeadline": "2026-08-31 11:15:12",
+      "payDeadline": "2026-08-31T11:15:12",
       "items": [
         { "id": 9001, "productName": "城市慢跑鞋…", "skuText": "云雾白；40", "price": 299.00, "quantity": 1, "image": "https://..." }
       ],
-      "itemCount": 1,
       "availableActions": ["pay", "cancel"]
     }
   ],
@@ -713,7 +716,9 @@ Query 参数：
 
   - `refund` 订单的 `statusText` 由最新售后工单状态动态覆盖：applying 申请中 / approved 已通过 / rejected 已驳回 / refunded 已退款 / closed 已关闭（避免售后列表固定在"售后中"，保证后台审核后小程序即时展示进度）
 
-- `payDeadline`：仅 `pending` 订单返回支付截止时间（`created_at + order_timeout_seconds`，默认 2 小时），其余状态为 `null`；前端据此渲染"剩余支付时间"倒计时（对应 `orders.vue` / `order-detail.vue`）
+- `payDeadline`：仅 `pending` 订单返回支付截止时间（`created_at + order_timeout_seconds`，默认 2 小时），其余状态为 `null`；**格式为 ISO 8601（`yyyy-MM-ddTHH:mm:ss`，T 分隔）**，前端 `new Date(payDeadline)` 直接解析渲染"剩余支付时间"倒计时（对应 `orders.vue` / `order-detail.vue`）
+
+- `itemCount`（商品总件数）**由前端本地计算**（`items.reduce((sum, item) => sum + item.quantity, 0)`），后端不返回该字段
 
 - `availableActions` 由服务端按状态计算（pay/cancel/remind/confirm/refund/buyAgain），前端据此渲染按钮，避免前端硬编码状态机（对应 `orders.vue`）；各状态动作集：pending\[pay/cancel/buyAgain]、paid\[remind/refund/buyAgain]、shipped\[confirm/refund/buyAgain]、completed\[refund/buyAgain]、cancelled/refund\[buyAgain]
 
@@ -742,7 +747,7 @@ GET /api/orders/{id}
   "shipTime": null,
   "finishTime": null,
   "createTime": "2026-08-31 09:15:12",
-  "payDeadline": "2026-08-31 11:15:12",
+  "payDeadline": "2026-08-31T11:15:12",
   "availableActions": ["pay", "cancel"]
 }
 ```
@@ -799,7 +804,7 @@ POST /api/orders/{id}/cancel
 
 - 仅 `paid` / `shipped` / `completed` 可申请售后；非三态返回 `1402`
 
-- 退款类型由订单原状态推断：`paid` → `refund`（仅退款），`shipped`/`completed` → `return`（退货退款）
+- 退款类型由用户选择：`refund`（仅退款）/ `return`（退货退款），`refund_type` 跟随用户选择的售后类型（见 §12.1）
 
 - 申请后订单状态置 `refund`，**回补已实扣库存**（`stock += qty`；支付已转实扣，退款恢复可售），订单暂停流转
 
@@ -1179,7 +1184,7 @@ POST /api/upload
 2. 首页聚合、分类、商品列表/详情/搜索
 3. 购物车 6 个接口
 4. 地址 5 个接口
-5. 订单 13 个接口（含结算预览、直购预览/下单、售后/退款、提醒发货；支付先用 `mock`）
+5. 订单 13 个接口（含结算预览、直购预览/下单、提醒发货；支付先用 `mock`；售后/退款走 `POST /api/after-sales` 工单制，见 §12）
 6. 收藏 3 个接口
 7. 会员概览、会员资料更新（`PUT /api/member/profile`）
 
@@ -1260,5 +1265,5 @@ POST /api/upload
 
 - `availableActions` 由服务端按状态计算返回，前端不做状态机硬编码（§9.3）
 
-- 时间统一 `yyyy-MM-dd HH:mm:ss`；金额为数字（元），不返回货币符号
+- 时间统一 `yyyy-MM-dd HH:mm:ss`（`payDeadline` 除外，为 ISO 8601 `yyyy-MM-ddTHH:mm:ss`）；金额为数字（元），不返回货币符号
 

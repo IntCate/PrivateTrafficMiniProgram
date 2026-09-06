@@ -21,15 +21,21 @@
 | 配置                                                            | 说明                     | 示例                                     |
 | ------------------------------------------------------------- | ---------------------- | -------------------------------------- |
 | `APP_ENV`                                                     | dev/test/prod          | `dev`                                  |
+| `APP_NAME`                                                    | 应用名（日志/健康检查展示）        | `mall-backend`                          |
+| `API_PREFIX`                                                  | 接口前缀（默认 `/api`）        | `/api`                                 |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | MySQL 连接               | `127.0.0.1 / 3306 / root / *** / mall` |
 | `SECRET_KEY`                                                  | 后台 JWT 签名密钥（≥ 32 字符随机） | —                                      |
 | `TOKEN_TTL_DAYS`                                              | C 端 token 有效期          | `7`                                    |
+| `ADMIN_JWT_TTL_HOURS`                                         | 后台 JWT 有效期             | `12`                                   |
+| `LOGIN_MOCK`                                                  | 登录 mock 开关（true/false）  | `true`                                 |
 | `WX_APP_ID`                                                   | 小程序 appid              | `wxe93987e2facbdd4d`                   |
 | `WX_APP_SECRET`                                               | 小程序密钥（**仅后端**）         | —                                      |
 | `LOG_LEVEL`                                                   | DEBUG/INFO             | `INFO`                                 |
+| `LOG_DIR`                                                     | 日志输出目录                 | `logs/`                                |
 | `UPLOAD_DIR`                                                  | 头像/图片本地存储路径            | `uploads/`                             |
 | `CORS_ORIGINS`                                                | 允许跨域来源（逗号分隔，见 §3）      | —                                      |
 | `PAY_MODE`                                                    | mock/wechat（支付模式）      | `mock`                                 |
+| `ORDER_TIMEOUT_SECONDS`                                       | 订单超时未支付自动关闭秒数         | `7200`                                 |
 
 ## 3. CORS 白名单
 

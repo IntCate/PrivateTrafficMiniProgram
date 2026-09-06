@@ -25,6 +25,10 @@
 - ✅ `docs/conventions/logging.md` — 通用规范：日志（P0）
 - ✅ `docs/conventions/environment.md` — 通用规范：环境与接口联调（P0）
 - ✅ `docs/acceptance-p0.md` — P0 一期验收报告（2026-09-02：单测/静态/建库种子/E2E/构建/性能/一致性）
+- ✅ `docs/acceptance-p1.md` — P1 验收报告（单测/静态/售后/优惠券/积分/后台全量）
+- ✅ `docs/websocket-realtime-push.md` — WebSocket 实时推送需求文档（已实现）
+- ✅ `docs/conventions/backend.md` — 后端代码规范（命名/分层/异常/事务/锁约定）
+- ✅ `docs/sql/schema.sql` + `docs/sql/seed-data.sql` + `docs/sql/seed-backend.sql` — 建库建表与种子数据脚本
 - ✅ `mall-miniapp-uni/README.md` — 跑通前端的技术说明（npm 命令等）
 
 ### 1.3 关键决策与外部依赖
@@ -88,8 +92,8 @@
 1. ✅ **P0 文档已补齐**：架构/PRD/环境/通用规范，可按 `docs/architecture.md` 建立工程骨架
 2. ✅ **文档颗粒度对齐（2026-09-01 精修轮）**：补齐结算预览/会员资料接口与售后模块；统一购物车上限、错误码兜底、会话清理、逻辑删除、等级字典等口径；补充购物车失效项展示口径（`onSale` 字段 + 结算 1203 拦截 + 全选语义，见 `api-design.md` §7.1/§7.6）
 3. ✅ **测试方案与用例文档已产出**：`docs/test-cases.md`（A 部分 H5 手测 28 条 + B 部分后端接口用例），后端据此实现并回归
-4. **建立后端工程骨架**：按 architecture.md 目录结构生成 `mall-backend/`，落地 core/common 模板层 + auth/member/product/cart/address/order/favorite/after_sale 模块空壳
-5. **生成数据库脚本**：根据 `docs/database-design.md` 产出 `docs/sql/schema.sql` + `seed-data.sql`（17 张表 + 10 条商品等种子数据）
+4. ✅ **后端工程骨架已建立**：`mall-backend/` 已生成，落地 core/common 模板层 + auth/member/product/cart/address/order/favorite/after_sale 等模块
+5. ✅ **数据库脚本已生成**：`docs/sql/schema.sql` + `seed-data.sql` + `seed-backend.sql`（17 张表 + 10 条商品等种子数据 + Alembic 迁移）
 6. **跟踪外部资质**：微信 appid / 商户号（开发期 mock 不受阻；其余决策已在文档定稿，前端按文档契约实现）
 7. **产出联调交付物**：Postman/Apifox 集合文件，与 `docs/api-design.md` 及 `docs/test-cases.md` B 部分配套
 
@@ -104,9 +108,9 @@
 | 3 | 数据库设计 | ✅ | `docs/database-design.md`（17 张表，依赖路径已更新为 `src/api/mock/store.js`） |
 | 4 | 前端 mock 核对结论 | ✅ | `docs/api-design.md` §16（契约核对记录 + 留给后端的实现提示） |
 | 5 | 测试用例基线 | ✅ | `docs/test-cases.md`（B 部分为后端接口用例，后端落地后逐条回归） |
-| 6 | 架构/工程骨架 | ⏳ | `docs/architecture.md` 已定；待生成 `mall-backend/` 骨架 |
-| 7 | 数据库脚本 | ⏳ | 待产出 `docs/sql/schema.sql` + `seed-data.sql` + Alembic 方案 |
-| 8 | 后端代码规范 | ⏳ | 待并入架构或独立（命名/分层/异常/事务/锁约定） |
+| 6 | 架构/工程骨架 | ✅ | `docs/architecture.md` 已定；`mall-backend/` 骨架已生成（core/common/modules） |
+| 7 | 数据库脚本 | ✅ | 已产出 `docs/sql/schema.sql` + `seed-data.sql` + `seed-backend.sql` + Alembic 迁移 |
+| 8 | 后端代码规范 | ✅ | `docs/conventions/backend.md`（命名/分层/异常/事务/锁约定） |
 | 9 | 联调工具集合 | ⏳ | 待产出 Postman/Apifox 集合（对齐 api-design + test-cases） |
 | 10 | 外部资质 | ⚠️ | 微信 appid/商户号；开发期 mock 与测试小程序不受阻 |
 
@@ -126,17 +130,21 @@ shopping/
 │   ├── prd.md                          # ✅ P0-2 产品需求文档
 │   ├── test-cases.md                   # ✅ 测试用例文档（A: H5 手测 28 条 + B: 后端接口用例 + C: 一致性）
 │   ├── acceptance-p0.md                # ✅ P0 一期验收报告（2026-09-02）
+│   ├── acceptance-p1.md                # ✅ P1 验收报告
+│   ├── websocket-realtime-push.md      # ✅ WebSocket 实时推送（已实现）
 │   ├── conventions/                    # ✅ P0-4 通用规范
 │   │   ├── error-code.md               # ✅ 错误码
 │   │   ├── auth.md                     # ✅ 鉴权
 │   │   ├── logging.md                  # ✅ 日志
+│   │   ├── backend.md                  # ✅ 后端代码规范
 │   │   └── environment.md              # ✅ 环境与联调
 │   ├── integrations/
 │   │   └── wechat.md                   # 🆕 P1-5 微信登录/支付
-│   └── sql/                            # 🆕 P1-6 数据库脚本
+│   └── sql/                            # ✅ P1-6 数据库脚本
 │       ├── schema.sql
-│       └── seed-data.sql
-├── mall-backend/                       # 🆕 后端工程（按 architecture.md 骨架）
+│       ├── seed-data.sql
+│       └── seed-backend.sql
+├── mall-backend/                       # ✅ 后端工程（按 architecture.md 骨架）
 │   ├── app/（core/common/modules/integrations）
 │   ├── alembic/
 │   ├── tests/

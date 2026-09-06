@@ -92,7 +92,7 @@
 | 商品 | 2 | products 列表、products/{id} 详情 |
 | 购物车 | 6 | 列表、加购、改数量/勾选、删单/批量、select-all |
 | 地址 | 5 | 列表、新增、改、删、设默认 |
-| 订单 | 13 | preview、preview-direct、direct、创建、stats、列表、详情、pay、cancel、refund、remind、confirm、buy-again |
+| 订单 | 13 | preview、preview-direct、direct、创建、stats、列表、详情、pay、cancel、remind、confirm、buy-again（售后/退款走 `POST /api/after-sales` 工单制，见 api-design §12） |
 | 收藏 | 3 | 列表、加、删 |
 
 管理后台为骨架占位（P1），与文档「预留」一致；优惠券 / 积分已在 P1-② 实现（领取/核销/积分流水，见 api-design §11.3/§11.4），售后工单已在 P1-③ 实现（申请/列表/详情，见 api-design §12）。
