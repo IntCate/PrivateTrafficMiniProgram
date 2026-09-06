@@ -1,5 +1,4 @@
-import { BASE_URL, useMock, TOKEN_KEY } from './config';
-import { mockRequest } from './mock';
+import { BASE_URL, TOKEN_KEY } from './config';
 
 let reloginPromise = null;
 
@@ -51,9 +50,6 @@ function doLogin() {
 }
 
 export function relogin() {
-  if (useMock) {
-    return Promise.resolve(getToken());
-  }
   clearToken();
   if (!reloginPromise) {
     reloginPromise = doLogin().finally(() => {
@@ -61,10 +57,6 @@ export function relogin() {
     });
   }
   return reloginPromise;
-}
-
-function handleAuthError() {
-  uni.showToast({ title: '登录状态已失效', icon: 'none' });
 }
 
 function cleanParams(params) {
@@ -111,25 +103,9 @@ function doRequest(options) {
 }
 
 export function request(options) {
-  const { url, method = 'GET', data, params } = options;
-  const token = getToken();
-
-  if (useMock) {
-    return mockRequest({ url, method, data, params, token }).then((res) => {
-      if (res.code === 401) {
-        handleAuthError();
-        return Promise.reject(res);
-      }
-      if (res.code !== 0) {
-        return Promise.reject(res);
-      }
-      return res.data;
-    });
-  }
-
   return doRequest(options).catch((err) => {
     if (err && err.code === 401) {
-      handleAuthError();
+      uni.showToast({ title: '登录状态已失效', icon: 'none' });
       return relogin().then(() => doRequest(options));
     }
     throw err;

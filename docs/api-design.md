@@ -86,7 +86,7 @@
 Authorization: Bearer {token}
 ```
 
-- token 有效期 7 天，会话记录保存至 `member_session` 表（见数据库设计 3.16）；过期返回 `401`，前端自动清除本地 token 并静默重新登录，成功后重试原请求（mock 模式仅提示登录失效，不自动重登，见 auth.md §1.3）
+- token 有效期 7 天，会话记录保存至 `member_session` 表（见数据库设计 3.16）；过期返回 `401`，前端自动清除本地 token 并静默重新登录，成功后重试原请求（见 auth.md §1.3）
 
 - 需要登录的接口：购物车、地址、订单、收藏、会员中心等（标注 🔒）
 
@@ -1183,17 +1183,17 @@ POST /admin/api/upload
 
 鉴权：`POST /admin/api/login`（username + password → JWT），后续请求带 `Authorization: Bearer {token}`；角色：admin / operator / finance。
 
-| 模块  | 接口                                                                                                                                                                                                          | 说明                                                           |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 模块  | 接口                                                                                                                                                                                                                                                    | 说明                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | 商品  | `GET/POST /admin/api/products`、`GET/PUT/DELETE /admin/api/products/{id}`、`PUT /admin/api/products/{id}/status`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}`、`POST /admin/api/upload`（category=product） | 商品 CRUD、上下架、SKU 维护、主图上传；列表支持 `category_id` 过滤（父分类含其全部子孙分类商品） |
-| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                                                                 | 分类管理；删除时若该分类下仍有商品，后端返回 `400` 拒删                              |
-| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                                                                      | 查询、发货                                                        |
-| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                                                                        | 审核                                                           |
-| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                                                                                                                                               | 列表、禁用                                                        |
-| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`、`POST /admin/api/upload`（category=banner）                                                                                                                          | 首页横幅/主题管理、运营位图片上传                                            |
-| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                                                                                                                                      | 券模板与发放                                                       |
-| 数据  | `GET /admin/api/dashboard/summary`、`GET /admin/api/dashboard/trend`                                                                                                                                         | 指标卡实际数据 + 仪表盘图表数据（近7天销售/订单趋势、分类商品占比、订单状态分布）                  |
-| 设置  | `GET/PUT /admin/api/configs`                                                                                                                                                                                | 系统配置                                                         |
+| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                                                                                                           | 分类管理；删除时若该分类下仍有商品，后端返回 `400` 拒删                              |
+| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                                                                                                                | 查询、发货                                                        |
+| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                                                                                                                  | 审核                                                           |
+| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                                                                                                                                                                                         | 列表、禁用                                                        |
+| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`、`POST /admin/api/upload`（category=banner）                                                                                                                                                                    | 首页横幅/主题管理、运营位图片上传                                            |
+| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                                                                                                                                                                                | 券模板与发放                                                       |
+| 数据  | `GET /admin/api/dashboard/summary`、`GET /admin/api/dashboard/trend`                                                                                                                                                                                   | 指标卡实际数据 + 仪表盘图表数据（近7天销售/订单趋势、分类商品占比、订单状态分布）                  |
+| 设置  | `GET/PUT /admin/api/configs`                                                                                                                                                                                                                          | 系统配置                                                         |
 
 **商品列表分类过滤**：`GET /admin/api/products?category_id={id}` 时返回该分类及其全部子孙分类下的商品（即选中父分类「服饰」会列出其下所有二级分类商品）。管理后台「商品中心」页基于此实现左侧分类树 + 右侧商品表的左右联动，「新增商品」时自动预填当前选中分类。
 
@@ -1239,15 +1239,13 @@ POST /admin/api/upload
 
 ***
 
-## 16. 前端 Mock 核对结论（契约核对记录）
+## 16. Mock 核对记录（契约口径归档）
 
-> 本记录用于"前端先用 mock 核对 API 文档，再开发后端"流程的交付物。前端 mock 已按本文档全量实现并逐页面打通，以下为核对过程中补充/澄清的口径，后端实现时应与本文档保持一致。
+> 本记录源自前端 mock 层（`mall-miniapp-uni/src/api/mock/`）按本文档核对 API 时补充/澄清的口径。**该 mock 层已移除**（前端统一直连真实后端，见 environment.md §4），但以下口径对后端实现仍然有效，作为契约约定沿用。
 
 ### 16.1 覆盖范围与仿真深度
 
-- Mock 位于 `mall-miniapp-uni/src/api/mock/`（`store.js` 状态+业务、`routes.js` 路由、`index.js` 出口），经 `src/api/request.js` 的 `mockRequest` 先行分流；`config.js` 的 `useMock` 可一键切换真实后端。
-
-- 覆盖本文档 §3\~§11 全部已实现接口，对接 12 个前端页面。
+- 已覆盖本文档 §3\~§11 全部已实现接口，对接 12 个前端页面。
 
 - 全仿真行为：登录/退出 token 生命周期（7 天有效期）、订单状态机（pending→paid→shipped→completed，pending→cancelled，paid/shipped/completed→refund 分支）、`availableActions` 动态计算（含 refund）、库存预占与回补（下单锁库存，取消/退款释放锁定；支付转实扣 `stock`/`lock_stock` 双扣并累加销量 `sales += qty`，退款回补已实扣库存）、幂等收藏（同商品重复收藏返回既有记录）、下单后删除本次购物车项。
 
@@ -1289,3 +1287,4 @@ POST /admin/api/upload
 - `availableActions` 由服务端按状态计算返回，前端不做状态机硬编码（§9.3）
 
 - 时间统一 `yyyy-MM-dd HH:mm:ss`（`payDeadline` 除外，为 ISO 8601 `yyyy-MM-ddTHH:mm:ss`）；金额为数字（元），不返回货币符号
+

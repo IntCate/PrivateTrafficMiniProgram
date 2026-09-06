@@ -78,7 +78,7 @@ npm run dev:h5
 
 ## 接口契约
 
-当前为本地 mock 数据（`src/api/mock/store.js`，经 `src/api/request.js` 的 `mockRequest` 分流；`src/api/config.js` 的 `useMock` 可一键切换真实后端）。后端接口契约以 `docs/api-design.md` 为准，对接改造项见其中 §15「边界与风险」与 §16「mock 核对记录」。
+当前小程序已移除本地 mock 数据层，统一直连真实后端（配置见 `mall-miniapp-uni/.env.local`，`VITE_API_BASE_URL` 指向后端）。后端接口契约以 `docs/api-design.md` 为准。
 
 ### 已实现的关键业务口径
 

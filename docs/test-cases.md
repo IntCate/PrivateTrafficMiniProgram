@@ -1,7 +1,7 @@
 # 快乐购商城 - 测试用例文档
 
 > 适用：`mall-miniapp-uni` 前端 H5 手测（A 部分）与后端 FastAPI 接口测试（B 部分）。
-> 参照基准：`docs/api-design.md`（接口契约）、`docs/conventions/error-code.md`（错误码）、`src/api/mock/store.js`（全仿真 mock 实现）。
+> 参照基准：`docs/api-design.md`（接口契约）、`docs/conventions/error-code.md`（错误码）、后端 `app/modules/*` 实现。
 > 前置：`npm run dev:h5`（H5 手测，默认 5179 端口）；后端联调见 `docs/conventions/environment.md`。
 
 ***
@@ -180,7 +180,7 @@
 
 ## C. 与契约/实现的一致性说明
 
-- 错误码编号、触发分支与本仓库 `src/api/mock/store.js` 一一对应（A 部分已实测通过，B 部分为契约推导、待后端落地后验证）。
+- 错误码编号、触发分支与后端 `app/modules/*` 实现一一对应（A 部分已实测通过，B 部分为契约推导、待后端落地后验证）。
 
 - 本清单为 `docs/project-docs-checklist.md` 第 8 项「测试方案与用例文档」的产出物。
 

@@ -105,8 +105,8 @@
 | --- | --- | --- | --- |
 | 1 | 接口契约定稿 | ✅ | `docs/api-design.md`（§1~§16，含错误码、失效项展示、全选语义、错误码实测路径） |
 | 2 | 错误码体系 | ✅ | `docs/conventions/error-code.md`（通用码 + 模块分段码，1102/1104/1201/1203/1301/1402/1403/1404/1405/1406 等） |
-| 3 | 数据库设计 | ✅ | `docs/database-design.md`（17 张表，依赖路径已更新为 `src/api/mock/store.js`） |
-| 4 | 前端 mock 核对结论 | ✅ | `docs/api-design.md` §16（契约核对记录 + 留给后端的实现提示） |
+| 3 | 数据库设计 | ✅ | `docs/database-design.md`（17 张表，依赖已对齐真实后端接口契约） |
+| 4 | Mock 核对记录 | ✅ | `docs/api-design.md` §16（契约口径归档；前端 mock 层已移除） |
 | 5 | 测试用例基线 | ✅ | `docs/test-cases.md`（B 部分为后端接口用例，后端落地后逐条回归） |
 | 6 | 架构/工程骨架 | ✅ | `docs/architecture.md` 已定；`mall-backend/` 骨架已生成（core/common/modules） |
 | 7 | 数据库脚本 | ✅ | 已产出 `docs/sql/schema.sql` + `seed-data.sql` + `seed-backend.sql` + Alembic 迁移 |

@@ -1,4 +1,4 @@
-import { useMock, TOKEN_KEY } from './config';
+import { TOKEN_KEY } from './config';
 import { relogin } from './request';
 
 function getToken() {
@@ -10,9 +10,6 @@ function getToken() {
 }
 
 export function ensureLogin() {
-  if (useMock) {
-    return Promise.resolve(getToken());
-  }
   if (getToken()) {
     return Promise.resolve(getToken());
   }

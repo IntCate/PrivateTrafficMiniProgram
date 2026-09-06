@@ -21,13 +21,13 @@
 | 配置                                                            | 说明                     | 示例                                     |
 | ------------------------------------------------------------- | ---------------------- | -------------------------------------- |
 | `APP_ENV`                                                     | dev/test/prod          | `dev`                                  |
-| `APP_NAME`                                                    | 应用名（日志/健康检查展示）        | `mall-backend`                          |
+| `APP_NAME`                                                    | 应用名（日志/健康检查展示）         | `mall-backend`                         |
 | `API_PREFIX`                                                  | 接口前缀（默认 `/api`）        | `/api`                                 |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | MySQL 连接               | `127.0.0.1 / 3306 / root / *** / mall` |
 | `SECRET_KEY`                                                  | 后台 JWT 签名密钥（≥ 32 字符随机） | —                                      |
 | `TOKEN_TTL_DAYS`                                              | C 端 token 有效期          | `7`                                    |
 | `ADMIN_JWT_TTL_HOURS`                                         | 后台 JWT 有效期             | `12`                                   |
-| `LOGIN_MOCK`                                                  | 登录 mock 开关（true/false）  | `true`                                 |
+| `LOGIN_MOCK`                                                  | 登录 mock 开关（true/false） | `true`                                 |
 | `WX_APP_ID`                                                   | 小程序 appid              | `wxe93987e2facbdd4d`                   |
 | `WX_APP_SECRET`                                               | 小程序密钥（**仅后端**）         | —                                      |
 | `LOG_LEVEL`                                                   | DEBUG/INFO             | `INFO`                                 |
@@ -35,7 +35,7 @@
 | `UPLOAD_DIR`                                                  | 头像/图片本地存储路径            | `uploads/`                             |
 | `CORS_ORIGINS`                                                | 允许跨域来源（逗号分隔，见 §3）      | —                                      |
 | `PAY_MODE`                                                    | mock/wechat（支付模式）      | `mock`                                 |
-| `ORDER_TIMEOUT_SECONDS`                                       | 订单超时未支付自动关闭秒数         | `7200`                                 |
+| `ORDER_TIMEOUT_SECONDS`                                       | 订单超时未支付自动关闭秒数          | `7200`                                 |
 
 ## 3. CORS 白名单
 
@@ -57,16 +57,13 @@
 
 - 未拿到正式 appid/secret 前：`LOGIN_MOCK` 开关开启，`code` 传任意值，后端本地生成稳定 openid（如 `mock_<code>`）即可跑通全链路；
 
-- mock 开关只影响**后端**；小程序前端通过 `VITE_USE_MOCK` 决定是否走 mock 数据（`src/api/config.js`，默认 mock）。
-
 - **前端本地联调配置**（`mall-miniapp-uni/.env.local`，不入仓库）：
 
   ```
-  VITE_USE_MOCK=false
   VITE_API_BASE_URL=http://127.0.0.1:8000
   ```
 
-  > 前端 `api/config.js` 的 BASE\_URL 默认值不含 `/api`，与接口路径拼接后为完整地址；`.env.local` 会覆盖默认值。
+  > 前端小程序已移除本地 mock 数据层，统一直连后端；`api/config.js` 的 BASE\_URL 默认值不含 `/api`，与接口路径拼接后为完整地址；`.env.local` 会覆盖默认值。
 
 - **微信开发者工具登录联调步骤**（真实后端 + 真实 MySQL）：
 
@@ -75,7 +72,7 @@
   3. **AppID 必须可获取** **`code`**：若产物内 appid 非本账号，改用「测试号」或本账号对应 AppID（`uni.login` 拿不到 code 时登录不触发）；
   4. 右上角「详情 → 本地设置」勾选 **「不校验合法域名、TLS 版本以及 HTTPS 证书」**（本地 http 方可访问）；
   5. 启动后小程序会自动静默登录（`App.vue onLaunch` → `uni.login` → `POST /api/auth/login` → 存 token）；后端日志应出现 `POST /api/auth/login 200 OK`。
-  6. **登录未触发/怀疑旧 token 残留**：工具栏「清缓存 → 清除全部缓存」后重新编译（mock 模块只在 mock 模式写本地 token，真实模式不会注入假 token）。
+  6. **登录未触发/怀疑旧 token 残留**：工具栏「清缓存 → 清除全部缓存」后重新编译。
 
 - 真实联调前置条件：
 
@@ -101,11 +98,11 @@
 
 ### 4.4 前端接入要点（源自 api-design §15）
 
-- 前端目前购物车/订单/收藏/会员数据为本地 mock，切后端时**不迁移旧数据**（直接丢弃，从头开始）；
+- 前端已移除本地 mock 数据层，统一对接真实后端接口；切库/切环境时**不迁移旧数据**（直接丢弃，从头开始）；
 
 - 加入购物车需补 `skuId`（默认取首个 SKU）；详情页 SKU 改为接口动态渲染；
 
-- `me.vue` 切 `/api/member/overview`；401 时自动清除本地 token 并静默重新登录，成功后重试原请求（mock 模式仅提示登录失效，不自动重登，见 auth.md §1.3）。
+- `me.vue` 切 `/api/member/overview`；401 时自动清除本地 token 并静默重新登录，成功后重试原请求（见 auth.md §1.3）。
 
 ## 5. 密钥与账号管理
 

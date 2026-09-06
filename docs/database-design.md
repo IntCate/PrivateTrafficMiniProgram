@@ -11,7 +11,7 @@
 
 ### 1.1 设计依据
 
-本文档依据 `mall-miniapp-uni` 前端已完成的 12 个页面及其本地数据层（`src/api/mock/store.js`）推导而来。前端当前使用本地 mock 数据层（经 `src/api/request.js` 的 `mockRequest` 分流，`src/api/config.js` 的 `useMock` 一键切换真实后端），实体与字段均与前端现有数据结构对齐，保证后端接替后前端改动最小。
+本文档基于 `mall-miniapp-uni` 前端已完成的 12 个页面及其接口契约（`docs/api-design.md`）推导而来。前端已移除本地 mock 数据层，实体现已按真实后端接口结构对齐。
 
 ### 1.2 覆盖的模块
 
