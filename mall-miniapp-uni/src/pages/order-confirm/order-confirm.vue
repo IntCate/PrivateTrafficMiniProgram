@@ -20,7 +20,7 @@
       <!-- 商品列表 -->
       <view class="goods-card">
         <view class="goods-item" v-for="(item, index) in items" :key="item.cartItemId">
-          <image class="goods-image" :src="item.image" mode="aspectFill" />
+          <image class="goods-image" :src="toAbs(item.image)" mode="aspectFill" />
           <view class="goods-info">
             <text class="goods-name">{{ item.name }}</text>
             <text class="goods-sku">{{ item.skuText }}</text>
@@ -65,6 +65,7 @@
 import { ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
+import { toAbs } from '@/api/config';
 
 const CHECKOUT_ADDRESS_KEY = 'checkoutAddressId';
 

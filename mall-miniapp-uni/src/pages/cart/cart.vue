@@ -27,7 +27,7 @@
               >
                 <uni-icons v-if="item.selected" type="checkmarkempty" size="12" color="#FFFFFF" />
               </view>
-              <image class="cart-image" :src="item.image" mode="aspectFill" />
+              <image class="cart-image" :src="toAbs(item.image)" mode="aspectFill" />
               <view class="cart-info">
                 <view class="cart-top">
                   <text class="cart-name">{{ item.name }}</text>
@@ -86,7 +86,7 @@
     <view v-if="skuPanelVisible" class="sku-mask" @click="closeSkuPanel">
       <view class="sku-panel" @click.stop>
         <view class="sku-panel-head">
-          <image class="sku-panel-image" :src="skuPanelItem.image" mode="aspectFill" />
+          <image class="sku-panel-image" :src="toAbs(skuPanelItem.image)" mode="aspectFill" />
           <view class="sku-panel-info">
             <text class="sku-panel-price">¥{{ skuPanelCurrentSku ? skuPanelCurrentSku.price : 0 }}</text>
             <text class="sku-panel-stock">库存 {{ skuPanelCurrentSku ? skuPanelCurrentSku.stock : 0 }} 件</text>
@@ -135,6 +135,7 @@
 import { ref, computed } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
 import { cartApi, productApi } from '@/api';
+import { toAbs } from '@/api/config';
 
 const cartItems = ref([]);
 const totalPrice = ref(0);

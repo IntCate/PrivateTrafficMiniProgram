@@ -3,7 +3,7 @@
     <view class="container">
       <view v-if="favorites.length" class="favorite-list">
         <view class="favorite-card" v-for="item in favorites" :key="item.id" @click="goDetail(item)">
-          <image class="favorite-image" :src="item.image" mode="aspectFill" />
+          <image class="favorite-image" :src="toAbs(item.image)" mode="aspectFill" />
           <view class="favorite-info">
             <text class="favorite-name">{{ item.name }}</text>
             <view class="favorite-bottom">
@@ -28,6 +28,7 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { favoriteApi } from '@/api';
+import { toAbs } from '@/api/config';
 
 const favorites = ref([]);
 

@@ -54,7 +54,7 @@
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
-import { BASE_URL, TOKEN_KEY } from '@/api/config';
+import { BASE_URL, TOKEN_KEY, toAbs } from '@/api/config';
 
 const orderId = ref(null);
 const orderStatus = ref('');
@@ -85,8 +85,6 @@ const onTypeChange = (e) => {
 const onReasonInput = (e) => {
   form.value.reason = e.detail.value;
 };
-
-const toAbs = (url) => (url && url.startsWith('/uploads/') ? BASE_URL + url : url);
 
 const chooseImage = () => {
   const remain = 6 - form.value.images.length;

@@ -27,7 +27,7 @@
         <scroll-view class="product-area" scroll-y :scroll-top="productScrollTop" enhanced :show-scrollbar="false">
           <view class="product-list">
             <view v-for="item in allProducts" :key="item.id" class="product-card" @click="goDetail(item)">
-              <image class="product-image" :src="item.mainImage" mode="aspectFill" />
+              <image class="product-image" :src="toAbs(item.mainImage)" mode="aspectFill" />
               <view class="product-info">
                 <text class="product-name">{{ item.name }}</text>
                 <text class="product-desc">{{ item.subTitle }}</text>
@@ -54,9 +54,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { categoryApi, productApi, cartApi } from '@/api';
 import { onWS } from '@/api/ws';
+import { toAbs } from '@/api/config';
 
 const categories = ref([{ id: null, name: '全部' }]);
 const activeCategory = ref(null);
@@ -90,13 +92,15 @@ const loadProducts = async () => {
   }
 };
 
-onMounted(() => {
+// 每次进入本页（含切换 tab 回来）都刷新分类与商品，确保后台改动（分类排序/上下架）能同步
+onShow(() => {
   loadCategories();
   loadProducts();
 });
 
-// 订阅运营数据变化，后台上下架/改商品后自动刷新
+// 订阅运营数据变化：后台改分类/上下架商品后自动刷新（分类排序 & 商品列表）
 onWS('catalog_changed', () => {
+  loadCategories();
   loadProducts();
 });
 

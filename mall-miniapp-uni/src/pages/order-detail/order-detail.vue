@@ -20,7 +20,7 @@
       <!-- 商品列表 -->
       <view class="goods-card">
         <view class="goods-item" v-for="(item, index) in order.items" :key="index">
-          <image class="goods-image" :src="item.image" mode="aspectFill" />
+          <image class="goods-image" :src="toAbs(item.image)" mode="aspectFill" />
           <view class="goods-info">
             <text class="goods-name">{{ item.productName }}</text>
             <text class="goods-sku">{{ item.skuText }}</text>
@@ -83,6 +83,7 @@ import { ref } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
 import { onWS } from '@/api/ws';
+import { toAbs } from '@/api/config';
 import { useOrderActions } from '@/composables/useOrderActions';
 import { useCountdown } from '@/composables/useCountdown';
 

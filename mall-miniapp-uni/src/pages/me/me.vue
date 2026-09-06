@@ -149,7 +149,7 @@
 import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { memberApi } from '@/api';
-import { BASE_URL, TOKEN_KEY } from '@/api/config';
+import { BASE_URL, TOKEN_KEY, toAbs } from '@/api/config';
 import { onWS } from '@/api/ws';
 
 const member = ref({ nickname: '', avatar: '', memberLevelText: '', couponCount: 0, points: 0 });
@@ -211,9 +211,6 @@ const closeEdit = () => {
   keyboardOffset.value = 0;
   showEdit.value = false;
 };
-
-// 头像相对路径 → 可访问的完整 URL（售后凭证图同款）
-const toAbs = (url) => (url && url.startsWith('/uploads/') ? BASE_URL + url : url);
 
 // 键盘高度：监听键盘弹出，弹层上移避免输入框被遮挡（官方 onKeyboardHeightChange）
 const keyboardOffset = ref(0);

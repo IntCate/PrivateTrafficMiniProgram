@@ -127,6 +127,7 @@
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { productApi, favoriteApi, cartApi } from '@/api';
+import { toAbs } from '@/api/config';
 
 const product = ref(null);
 const productId = ref(null);
@@ -168,13 +169,15 @@ const currentPrice = computed(() =>
   currentSku.value ? currentSku.value.price : product.value ? product.value.price : 0
 );
 const currentOriginalPrice = computed(() => (product.value ? product.value.originalPrice : 0));
-const currentImage = computed(() =>
-  currentSku.value && currentSku.value.image
-    ? currentSku.value.image
-    : product.value
-      ? product.value.mainImage
-      : ''
-);
+const currentImage = computed(() => {
+  const raw =
+    currentSku.value && currentSku.value.image
+      ? currentSku.value.image
+      : product.value
+        ? product.value.mainImage
+        : '';
+  return toAbs(raw);
+});
 
 onLoad(async (options) => {
   productId.value = Number(options.id);

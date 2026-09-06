@@ -26,7 +26,7 @@
                 </view>
               </view>
               <view class="order-item" v-for="(item, index) in order.items" :key="index">
-                <image class="order-image" :src="item.image" mode="aspectFill" />
+                <image class="order-image" :src="toAbs(item.image)" mode="aspectFill" />
                 <view class="order-info">
                   <text class="order-name">{{ item.productName }}</text>
                   <text class="order-sku">{{ item.skuText }}</text>
@@ -68,6 +68,7 @@ import { ref } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
 import { onWS } from '@/api/ws';
+import { toAbs } from '@/api/config';
 import { useOrderActions } from '@/composables/useOrderActions';
 
 const tabs = [

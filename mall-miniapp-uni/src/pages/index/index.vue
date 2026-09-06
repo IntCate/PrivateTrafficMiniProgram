@@ -30,7 +30,7 @@
 
       <!-- 主横幅 -->
       <navigator url="/pages/products/products" open-type="switchTab" class="hero-banner">
-        <image class="hero-image" :src="heroBanner ? heroBanner.image : '/static/hero-banner.jpg'" mode="aspectFill" />
+        <image class="hero-image" :src="heroBanner ? toAbs(heroBanner.image) : '/static/hero-banner.jpg'" mode="aspectFill" />
         <view class="hero-overlay"></view>
         <view class="hero-content">
           <text class="hero-tag">{{ heroBanner ? heroBanner.tag : '限时特惠' }}</text>
@@ -62,7 +62,7 @@
               open-type="switchTab"
               class="theme-card"
             >
-              <image class="theme-image" :src="theme.image" mode="aspectFill" />
+              <image class="theme-image" :src="toAbs(theme.image)" mode="aspectFill" />
               <view class="theme-overlay"></view>
               <view class="theme-content">
                 <text class="theme-name">{{ theme.name }}</text>
@@ -90,6 +90,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { homeApi } from '@/api';
 import { onWS } from '@/api/ws';
+import { toAbs } from '@/api/config';
 
 const member = ref(null);
 const banners = ref([]);
