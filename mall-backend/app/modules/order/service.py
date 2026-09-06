@@ -697,6 +697,7 @@ def pay_order(db: Session, user_id: int, order_id: int, pay_type: str = "mock") 
     _settle_stock(db, order)
     db.commit()
     ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
+    ws_manager.notify("admin", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -712,6 +713,7 @@ def cancel_order(db: Session, user_id: int, order_id: int, reason: str | None = 
     order.cancel_reason = reason
     db.commit()
     ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
+    ws_manager.notify("admin", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -748,6 +750,7 @@ def confirm_order(db: Session, user_id: int, order_id: int) -> dict:
         )
     db.commit()
     ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
+    ws_manager.notify("admin", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 

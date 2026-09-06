@@ -116,9 +116,11 @@
 | ----------------------- | ------------------------------- | -------------------------------------- | --------------------------- |
 | `order/service.py`      | `create_order`                  | `order_new`                            | `admin`                     |
 | `order/service.py`      | `create_order`                  | `order_changed`                        | `order:{user_id}`           |
-| `order/service.py`      | `pay_order`                     | `order_changed`                        | `order:{user_id}`           |
-| `order/service.py`      | `cancel_order`                  | `order_changed`                        | `order:{user_id}`           |
-| `order/service.py`      | `confirm_order`                 | `order_changed`                        | `order:{user_id}`           |
+| `order/service.py`      | `create_direct_order`           | `order_new`                            | `admin`                     |
+| `order/service.py`      | `create_direct_order`           | `order_changed`                        | `order:{user_id}`           |
+| `order/service.py`      | `pay_order`                     | `order_changed`                        | `order:{user_id}` + `admin` |
+| `order/service.py`      | `cancel_order`                  | `order_changed`                        | `order:{user_id}` + `admin` |
+| `order/service.py`      | `confirm_order`                 | `order_changed`                        | `order:{user_id}` + `admin` |
 | `order/service.py`      | `buy_again`                     | `order_new` + `order_changed`          | `admin` + `order:{user_id}` |
 | `order/service.py`      | `close_timeout_orders`          | `order_changed`                        | `order:{user_id}`           |
 | `admin/service.py`      | `ship_order`                    | `order_changed`                        | `order:{user_id}` + `admin` |

@@ -150,6 +150,7 @@ import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { memberApi } from '@/api';
 import { BASE_URL, TOKEN_KEY } from '@/api/config';
+import { onWS } from '@/api/ws';
 
 const member = ref({ nickname: '', avatar: '', memberLevelText: '', couponCount: 0, points: 0 });
 const pendingCount = ref(0);
@@ -160,7 +161,7 @@ const showEdit = ref(false);
 const editNickname = ref('');
 const editAvatar = ref('');
 
-onShow(async () => {
+const loadData = async () => {
   try {
     const data = await memberApi.overview();
     member.value = data.member;
@@ -173,7 +174,12 @@ onShow(async () => {
       uni.showToast({ title: e.message || '会员信息加载失败', icon: 'none' });
     }
   }
-});
+};
+
+onShow(loadData);
+
+// 订单状态变化（后台发货/审核售后等）时自动刷新角标
+onWS('order_changed', loadData);
 
 const goOrders = (status) => {
   const url = status === undefined ? '/pages/orders/orders' : `/pages/orders/orders?status=${status}`;
