@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { createCoupon, grantCoupon, listCoupons, updateCoupon } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const loading = ref(false)
 const list = ref([])
@@ -81,7 +82,10 @@ async function handleGrant() {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('catalog_changed', load)
+})
 </script>
 
 <template>

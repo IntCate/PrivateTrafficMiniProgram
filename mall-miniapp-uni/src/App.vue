@@ -1,9 +1,14 @@
 <script>
 import { ensureLogin } from '@/api/auth';
+import { connectWS } from '@/api/ws';
 
 export default {
   onLaunch() {
-    ensureLogin().catch(() => {});
+    ensureLogin()
+      .then(() => {
+        connectWS();
+      })
+      .catch(() => {});
   },
 };
 </script>

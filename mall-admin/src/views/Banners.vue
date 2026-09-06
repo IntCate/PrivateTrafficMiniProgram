@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { createBanner, deleteBanner, listBanners, updateBanner } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const loading = ref(false)
 const list = ref([])
@@ -66,7 +67,10 @@ async function handleDelete(row) {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('catalog_changed', load)
+})
 </script>
 
 <template>

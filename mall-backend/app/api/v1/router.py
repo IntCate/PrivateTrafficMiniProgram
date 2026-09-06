@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.v1.ws import router as ws_router
 from app.modules.address.api import router as address_router
 from app.modules.admin.api import router as admin_router
 from app.modules.after_sale.api import router as after_sale_router
@@ -39,3 +40,6 @@ api_router.include_router(points_router, prefix="/api")
 
 # 后台
 api_router.include_router(admin_router, prefix="/admin/api")
+
+# WebSocket 实时推送
+api_router.include_router(ws_router)

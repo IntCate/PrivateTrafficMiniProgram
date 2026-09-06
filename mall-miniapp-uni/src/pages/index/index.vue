@@ -89,6 +89,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { homeApi } from '@/api';
+import { onWS } from '@/api/ws';
 
 const member = ref(null);
 const banners = ref([]);
@@ -166,6 +167,11 @@ const loadData = async () => {
 
 // 每次回到首页 tab 都刷新数据（含用户昵称/积分，与其他 tab 页修改后保持同步）
 onShow(() => {
+  loadData();
+});
+
+// 订阅运营数据变化，后台改横幅/配置后自动刷新
+onWS('catalog_changed', () => {
   loadData();
 });
 

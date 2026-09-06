@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { listConfigs, updateConfig } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const loading = ref(false)
 const list = ref([])
@@ -35,7 +36,10 @@ async function handleSave() {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('catalog_changed', load)
+})
 </script>
 
 <template>

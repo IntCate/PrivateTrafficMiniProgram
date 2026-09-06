@@ -67,6 +67,7 @@
 import { ref } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
+import { onWS } from '@/api/ws';
 import { useOrderActions } from '@/composables/useOrderActions';
 
 const tabs = [
@@ -149,6 +150,11 @@ onLoad((options) => {
 });
 
 onShow(() => {
+  reload();
+});
+
+// 订阅订单变化，后台发货/审核售后后自动刷新
+onWS('order_changed', () => {
   reload();
 });
 

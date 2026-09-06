@@ -13,6 +13,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import ws as ws_manager
 from app.core.config import settings
 from app.core.exceptions import BizException
 from app.modules.address.models import ShippingAddress
@@ -557,6 +558,8 @@ def create_order(
     if coupon is not None and user_coupon_id is not None:
         _mark_coupon_used(db, user_id, user_coupon_id, order.order_no)
     db.commit()
+    ws_manager.notify("admin", "order_new", {"order_id": order.id})
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -571,6 +574,8 @@ def create_direct_order(
     _preoccupy_stock(db, product_items)
     order = _build_order(db, user_id, address, product_items)
     db.commit()
+    ws_manager.notify("admin", "order_new", {"order_id": order.id})
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -691,6 +696,7 @@ def pay_order(db: Session, user_id: int, order_id: int, pay_type: str = "mock") 
     order.pay_time = datetime.now()
     _settle_stock(db, order)
     db.commit()
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -705,6 +711,7 @@ def cancel_order(db: Session, user_id: int, order_id: int, reason: str | None = 
     order.status = "cancelled"
     order.cancel_reason = reason
     db.commit()
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -740,6 +747,7 @@ def confirm_order(db: Session, user_id: int, order_id: int) -> dict:
             )
         )
     db.commit()
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _detail_dto(order, _order_items(db, order))
 
 
@@ -756,6 +764,8 @@ def buy_again(db: Session, user_id: int, order_id: int) -> dict:
     _preoccupy_stock(db, product_items)
     new_order = _build_order(db, user_id, address, product_items)
     db.commit()
+    ws_manager.notify("admin", "order_new", {"order_id": new_order.id})
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": new_order.id})
     return _detail_dto(new_order, _order_items(db, new_order))
 
 
@@ -783,4 +793,9 @@ def close_timeout_orders(db: Session, *, now: datetime | None = None) -> int:
         order.status = ORDER_STATUS_CANCELLED
         order.cancel_reason = "订单超时未支付，系统自动关闭"
     db.commit()
+    for order in orders:
+        if order.status == ORDER_STATUS_CANCELLED:
+            ws_manager.notify_threadsafe(
+                f"order:{order.user_id}", "order_changed", {"order_id": order.id}
+            )
     return len(orders)

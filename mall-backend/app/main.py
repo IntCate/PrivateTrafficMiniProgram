@@ -1,6 +1,7 @@
 """FastAPI 入口：中间件、路由注册、启动事件。"""
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
+from app.core import ws as ws_manager
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import RequestIdMiddleware, setup_logging
@@ -21,8 +23,10 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """应用启动/关闭生命周期（替代已弃用的 on_event）。"""
+    ws_manager.set_main_loop(asyncio.get_running_loop())
     init_scheduler()
     yield
+    ws_manager.set_main_loop(None)
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)

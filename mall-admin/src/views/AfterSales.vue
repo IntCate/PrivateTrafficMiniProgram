@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { auditAfterSale, listAfterSales } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const loading = ref(false)
 const list = ref([])
@@ -42,7 +43,10 @@ async function handleAudit() {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('after_sale_changed', load)
+})
 </script>
 
 <template>

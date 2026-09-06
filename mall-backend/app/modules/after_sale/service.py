@@ -7,6 +7,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import ws as ws_manager
 from app.core.exceptions import BizException
 from app.modules.after_sale.models import (
     AFTER_SALE_APPLYING,
@@ -102,6 +103,8 @@ def create_after_sale(
     order.refund_time = datetime.now()
     db.flush()
     db.commit()
+    ws_manager.notify("admin", "after_sale_changed", {"after_sale_id": row.id})
+    ws_manager.notify(f"order:{user_id}", "order_changed", {"order_id": order.id})
     return _to_item(row)
 
 

@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core import ws as ws_manager
 from app.core.exceptions import BizException
 from app.core.security import create_admin_jwt, hash_password, verify_password
 from app.modules.admin.models import AdminUser
@@ -69,6 +70,12 @@ from app.modules.product.models import (
 )
 
 logger = logging.getLogger("app.modules.admin.service")
+
+
+def _notify_catalog_changed(catalog_type: str) -> None:
+    """运营数据变化：同时推给后台 admin 主题与小程序 public 主题。"""
+    ws_manager.notify("admin", "catalog_changed", {"type": catalog_type})
+    ws_manager.notify("public", "catalog_changed", {"type": catalog_type})
 
 
 def login(db: Session, username: str, password: str) -> LoginOut:
@@ -202,6 +209,7 @@ def create_product(db: Session, body: CreateProductRequest) -> ProductAdminDetai
     )
     db.add(product)
     db.commit()
+    _notify_catalog_changed("product")
     return get_product(db, product.id)
 
 
@@ -216,6 +224,7 @@ def update_product(
     for field, value in data.items():
         setattr(product, field, value)
     db.commit()
+    _notify_catalog_changed("product")
     return get_product(db, product_id)
 
 
@@ -228,6 +237,7 @@ def update_product_status(
         raise BizException(404, "商品不存在")
     product.status = body.status
     db.commit()
+    _notify_catalog_changed("product")
     return get_product(db, product_id)
 
 
@@ -238,6 +248,7 @@ def delete_product(db: Session, product_id: int) -> None:
         raise BizException(404, "商品不存在")
     product.deleted = True
     db.commit()
+    _notify_catalog_changed("product")
 
 
 def _ensure_product(db: Session, product_id: int) -> None:
@@ -277,6 +288,7 @@ def create_product_sku(
     )
     db.add(sku)
     db.commit()
+    _notify_catalog_changed("product")
     return ProductSkuAdminItemOut.model_validate(sku).model_dump()
 
 
@@ -292,6 +304,7 @@ def update_product_sku(
     for field, value in data.items():
         setattr(sku, field, value)
     db.commit()
+    _notify_catalog_changed("product")
     return ProductSkuAdminItemOut.model_validate(sku).model_dump()
 
 
@@ -303,6 +316,7 @@ def delete_product_sku(db: Session, product_id: int, sku_id: int) -> None:
         raise BizException(404, "SKU 不存在")
     sku.deleted = True
     db.commit()
+    _notify_catalog_changed("product")
 
 
 def list_categories(db: Session) -> list[dict]:
@@ -322,6 +336,7 @@ def create_category(db: Session, body: CreateCategoryRequest) -> dict:
     )
     db.add(category)
     db.commit()
+    _notify_catalog_changed("category")
     return CategoryAdminItemOut.model_validate(category).model_dump()
 
 
@@ -336,6 +351,7 @@ def update_category(
     for field, value in data.items():
         setattr(category, field, value)
     db.commit()
+    _notify_catalog_changed("category")
     return CategoryAdminItemOut.model_validate(category).model_dump()
 
 
@@ -346,6 +362,7 @@ def delete_category(db: Session, category_id: int) -> None:
         raise BizException(404, "分类不存在")
     db.delete(category)
     db.commit()
+    _notify_catalog_changed("category")
 
 
 def list_orders(db: Session, page: int, page_size: int, status: str | None = None) -> dict:
@@ -390,6 +407,8 @@ def ship_order(db: Session, order_id: int, body: ShipOrderRequest) -> OrderAdmin
     order.status = ORDER_STATUS_SHIPPED
     order.ship_time = datetime.now()
     db.commit()
+    ws_manager.notify(f"order:{order.user_id}", "order_changed", {"order_id": order.id})
+    ws_manager.notify("admin", "order_changed", {"order_id": order.id})
     return OrderAdminDetailOut.model_validate(order)
 
 
@@ -450,6 +469,7 @@ def create_banner(db: Session, body: CreateBannerRequest) -> dict:
     )
     db.add(banner)
     db.commit()
+    _notify_catalog_changed("banner")
     return BannerAdminItemOut.model_validate(banner).model_dump()
 
 
@@ -462,6 +482,7 @@ def update_banner(db: Session, banner_id: int, body: UpdateBannerRequest) -> dic
     for field, value in data.items():
         setattr(banner, field, value)
     db.commit()
+    _notify_catalog_changed("banner")
     return BannerAdminItemOut.model_validate(banner).model_dump()
 
 
@@ -472,6 +493,7 @@ def delete_banner(db: Session, banner_id: int) -> None:
         raise BizException(404, "运营位不存在")
     db.delete(banner)
     db.commit()
+    _notify_catalog_changed("banner")
 
 
 def list_coupons(db: Session) -> list[dict]:
@@ -495,6 +517,7 @@ def create_coupon(db: Session, body: CreateCouponRequest) -> dict:
     )
     db.add(coupon)
     db.commit()
+    _notify_catalog_changed("coupon")
     return CouponAdminItemOut.model_validate(coupon).model_dump()
 
 
@@ -507,6 +530,7 @@ def update_coupon(db: Session, coupon_id: int, body: UpdateCouponRequest) -> dic
     for field, value in data.items():
         setattr(coupon, field, value)
     db.commit()
+    _notify_catalog_changed("coupon")
     return CouponAdminItemOut.model_validate(coupon).model_dump()
 
 
@@ -567,6 +591,10 @@ def audit_after_sale(
     after_sale.status = AFTER_SALE_APPROVED if approve else AFTER_SALE_REJECTED
     after_sale.audit_remark = remark
     db.commit()
+    ws_manager.notify(
+        f"order:{after_sale.user_id}", "order_changed", {"order_id": after_sale.order_id}
+    )
+    ws_manager.notify("admin", "after_sale_changed", {"after_sale_id": after_sale.id})
     return AfterSaleAdminItemOut.model_validate(after_sale).model_dump()
 
 
@@ -611,6 +639,7 @@ def update_config(db: Session, key: str, body: UpdateConfigRequest) -> dict:
     if body.remark is not None:
         config.remark = body.remark
     db.commit()
+    _notify_catalog_changed("config")
     return ConfigItemOut.model_validate(config).model_dump()
 
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -17,10 +17,19 @@ import {
 } from '@element-plus/icons-vue'
 
 import { useUserStore } from '@/store/user'
+import { connectWS, disconnectWS } from '@/utils/ws'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+onMounted(() => {
+  connectWS()
+})
+
+onUnmounted(() => {
+  disconnectWS()
+})
 
 const role = computed(() => userStore.role)
 

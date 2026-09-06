@@ -82,6 +82,7 @@
 import { ref } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { orderApi } from '@/api';
+import { onWS } from '@/api/ws';
 import { useOrderActions } from '@/composables/useOrderActions';
 import { useCountdown } from '@/composables/useCountdown';
 
@@ -96,6 +97,13 @@ onLoad((options) => {
 // 用 onShow 加载，保证从"申请售后"返回后能拉到最新状态
 onShow(() => {
   reload();
+});
+
+// 订阅订单变化，后台发货/审核售后后自动刷新
+onWS('order_changed', (data) => {
+  if (data && data.order_id === orderId) {
+    reload();
+  }
 });
 
 onUnload(() => {

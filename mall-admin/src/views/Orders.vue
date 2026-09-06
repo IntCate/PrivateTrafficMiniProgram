@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { listOrders, shipOrder } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const loading = ref(false)
 const list = ref([])
@@ -53,7 +54,11 @@ async function handleShip() {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('order_new', load)
+  onWS('order_changed', load)
+})
 </script>
 
 <template>

@@ -56,6 +56,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { categoryApi, productApi, cartApi } from '@/api';
+import { onWS } from '@/api/ws';
 
 const categories = ref([{ id: null, name: '全部' }]);
 const activeCategory = ref(null);
@@ -91,6 +92,11 @@ const loadProducts = async () => {
 
 onMounted(() => {
   loadCategories();
+  loadProducts();
+});
+
+// 订阅运营数据变化，后台上下架/改商品后自动刷新
+onWS('catalog_changed', () => {
   loadProducts();
 });
 

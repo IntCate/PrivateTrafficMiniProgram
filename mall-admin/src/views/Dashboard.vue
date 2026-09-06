@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { Money, List, User, Goods, Clock } from '@element-plus/icons-vue'
 
 import { getDashboardSummary } from '@/api'
+import { onWS } from '@/utils/ws'
 
 const summary = ref({
   total_sales: '0.00',
@@ -25,7 +26,11 @@ async function load() {
   ]
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  onWS('order_new', load)
+  onWS('catalog_changed', load)
+})
 </script>
 
 <template>
