@@ -122,7 +122,7 @@
 | 上传  | `POST /api/upload`（category=after\_sale/avatar）                            | common/api.py + upload.py       |
 | 优惠券 | `GET /api/coupons`、`POST /api/coupons/{id}/receive`                        | coupon 模块                       |
 | 积分  | `GET /api/points-logs`                                                     | points 模块                       |
-| 后台  | login + 商品/分类/订单/售后/会员/运营位/券/概览/配置                                         | admin/api.py + service.py       |
+| 后台  | login + 商品/分类/订单/售后/会员/运营位/券/概览/配置 + `POST /admin/api/upload`（category=banner/product/category） | admin/api.py + service.py       |
 
 ### 5.2 关键契约三方一致（文档=后端=前端）
 

@@ -170,8 +170,7 @@
 | `Dashboard.vue`  | `order_new`、`catalog_changed` | `load` |
 | `Orders.vue`     | `order_new`、`order_changed`   | `load` |
 | `AfterSales.vue` | `after_sale_changed`          | `load` |
-| `Products.vue`   | `catalog_changed`             | `load` |
-| `Categories.vue` | `catalog_changed`             | `load` |
+| `Catalog.vue`（商品中心）| `catalog_changed`             | `CategoryPanel` 刷新分类树 + `ProductTable` 刷新分类下拉与商品表 |
 | `Banners.vue`    | `catalog_changed`             | `load` |
 | `Coupons.vue`    | `catalog_changed`             | `load` |
 | `Configs.vue`    | `catalog_changed`             | `load` |
@@ -204,8 +203,8 @@
 | ------------------ | ----------------- | -------------- |
 | `order-detail.vue` | `order_changed`   | `reload`       |
 | `orders.vue`       | `order_changed`   | `reload`       |
-| `index.vue`        | `catalog_changed` | `loadData`     |
-| `products.vue`     | `catalog_changed` | `loadProducts` |
+| `index.vue`        | `catalog_changed` | `loadData`（横幅/主题精选）                                         |
+| `products.vue`     | `catalog_changed` | `loadCategories` + `loadProducts`（后台改分类排序/上下架商品后，先后刷新左侧分类与右侧商品） |
 
 ***
 

@@ -6,7 +6,8 @@
 --   * 须在 alembic upgrade head（或 schema.sql）建表之后执行
 --   * 仅含 C 端前台表（category/product/product_sku/banner），导入不依赖后台表
 --   * 后台种子（sys_config/admin_user）见同目录 seed-backend.sql，待后台模块建表后执行
---   * 图片 URL 为前端相对路径占位（/static/...），上线前替换为真实 CDN
+--   * 商品/分类图片 URL 为前端相对路径占位（/static/...），上线前替换为真实 CDN
+--   * 运营位图片已改为后端可访问路径（/uploads/banner/...），由后端静态挂载提供
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -134,16 +135,17 @@ VALUES
 
 -- ---------------------------------------------------------------------------
 -- 4. 运营位：hero 主横幅 3 条 + theme 主题精选 4 条（对齐前端 banners/themes）
+--    图片为后端可访问路径 /uploads/banner/hero-banner.jpg（由后端静态挂载提供）
 -- ---------------------------------------------------------------------------
 INSERT INTO `banner`
 (`position`, `title`, `sub_title`, `image`, `link_type`, `link_value`, `sort`, `status`)
 VALUES
-('hero',  '夏季新品 火热开售', '限时特惠', '/static/hero-banner.jpg', 'page',     '/pages/products/products', 1, 1),
-('hero',  '会员日 积分翻倍',   '会员专享', '/static/hero-banner.jpg', 'page',     '/pages/me/me',             2, 1),
-('hero',  '通勤好物 一站购齐', '每日精选', '/static/hero-banner.jpg', 'category', '2',                      3, 1),
-('theme', '夏季焕新',          '轻盈出行', '/static/hero-banner.jpg', 'category', '1',                      1, 1),
-('theme', '会员专享',          '积分抵现', '/static/hero-banner.jpg', 'page',     '/pages/me/me',            2, 1),
-('theme', '通勤百搭',          '精致搭配', '/static/hero-banner.jpg', 'category', '2',                      3, 1),
-('theme', '影音数码',          '沉浸体验', '/static/hero-banner.jpg', 'category', '3',                      4, 1);
+('hero',  '夏季新品 火热开售', '限时特惠', '/uploads/banner/hero-banner.jpg', 'page',     '/pages/products/products', 1, 1),
+('hero',  '会员日 积分翻倍',   '会员专享', '/uploads/banner/hero-banner.jpg', 'page',     '/pages/me/me',             2, 1),
+('hero',  '通勤好物 一站购齐', '每日精选', '/uploads/banner/hero-banner.jpg', 'category', '2',                      3, 1),
+('theme', '夏季焕新',          '轻盈出行', '/uploads/banner/hero-banner.jpg', 'category', '1',                      1, 1),
+('theme', '会员专享',          '积分抵现', '/uploads/banner/hero-banner.jpg', 'page',     '/pages/me/me',            2, 1),
+('theme', '通勤百搭',          '精致搭配', '/uploads/banner/hero-banner.jpg', 'category', '2',                      3, 1),
+('theme', '影音数码',          '沉浸体验', '/uploads/banner/hero-banner.jpg', 'category', '3',                      4, 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

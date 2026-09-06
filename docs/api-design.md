@@ -1154,6 +1154,20 @@ POST /api/upload
 
 - 用途：售后凭证 `images`（category=`after_sale`，最多 6 张，前端 `pages/after-sale/apply.vue` 上传后回填 URL 一并提交）；头像（category=`avatar`，前端 `pages/me/me.vue` 用 `chooseAvatar` 选图后上传，见 §11.2）
 
+**后台运营位图片上传**（管理后台，见 §13）：
+
+```
+POST /admin/api/upload
+```
+
+- 鉴权：后台 `Authorization: Bearer`（admin/operator 角色）；`multipart/form-data`，字段名 `file`，可选表单字段 `category`（用途→存储目录，白名单 `banner`（默认）/ `product` / `category`，非法返回 `400`）
+
+- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
+
+- 返回 `data.url` 相对路径（`/uploads/{category}/{uuid}.ext`），经 `/uploads` 静态挂载访问；管理后台 `Banners.vue` 用 `el-upload` 上传组件选择图片，列表用 `el-image` 直接渲染相对路径（vite 代理 `/uploads` 到后端），小程序端预览时拼接 `BASE_URL`
+
+- 用途：运营位 `banner.image`（category=`banner`，后台 `Banners.vue` 上传后回填 URL 一并提交）
+
 ***
 
 ## 13. 管理后台接口 🔒
@@ -1162,17 +1176,19 @@ POST /api/upload
 
 鉴权：`POST /admin/api/login`（username + password → JWT），后续请求带 `Authorization: Bearer {token}`；角色：admin / operator / finance。
 
-| 模块  | 接口                                                                                                                                                               | 说明                 |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}` | 商品 CRUD、上下架、SKU 维护 |
-| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                      | 分类管理               |
-| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                           | 查询、发货              |
-| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                             | 审核                 |
-| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                                                                                                    | 列表、禁用              |
-| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`                                                                                                                         | 首页横幅/主题管理          |
-| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                                                                                           | 券模板与发放             |
-| 数据  | `GET /admin/api/dashboard/summary`                                                                                                                               | 销售额、订单量、用户数概览      |
-| 设置  | `GET/PUT /admin/api/configs`                                                                                                                                     | 系统配置               |
+| 模块  | 接口                                                                                                                                                                                                          | 说明                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}`、`POST /admin/api/upload`（category=product） | 商品 CRUD、上下架、SKU 维护、主图上传；列表支持 `category_id` 过滤（父分类含其全部子孙分类商品） |
+| 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                                                                 | 分类管理；删除时若该分类下仍有商品，后端返回 `400` 拒删                              |
+| 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                                                                      | 查询、发货                                                        |
+| 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                                                                        | 审核                                                           |
+| 会员  | `GET /admin/api/members`、`PUT /admin/api/members/{id}/status`                                                                                                                                               | 列表、禁用                                                        |
+| 运营位 | `GET/POST/PUT/DELETE /admin/api/banners`、`POST /admin/api/upload`（category=banner）                                                                                                                          | 首页横幅/主题管理、运营位图片上传                                            |
+| 优惠券 | `GET/POST/PUT /admin/api/coupons`、`POST /admin/api/coupons/{id}/grant`                                                                                                                                      | 券模板与发放                                                       |
+| 数据  | `GET /admin/api/dashboard/summary`、`GET /admin/api/dashboard/trend`                                                                                                                                         | 指标卡实际数据 + 仪表盘图表数据（近7天销售/订单趋势、分类商品占比、订单状态分布）                  |
+| 设置  | `GET/PUT /admin/api/configs`                                                                                                                                                                                | 系统配置                                                         |
+
+**商品列表分类过滤**：`GET /admin/api/products?category_id={id}` 时返回该分类及其全部子孙分类下的商品（即选中父分类「服饰」会列出其下所有二级分类商品）。管理后台「商品中心」页基于此实现左侧分类树 + 右侧商品表的左右联动，「新增商品」时自动预填当前选中分类。
 
 ***
 

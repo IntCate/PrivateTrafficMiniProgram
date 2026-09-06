@@ -7,7 +7,8 @@
 --   mysql -u{user} -p {db} < seed-data.sql
 --
 -- 注意：
---   * 图片 URL 为前端相对路径占位（/static/...），部署时替换为真实 CDN 地址
+--   * 商品/分类图片 URL 为前端相对路径占位（/static/...），部署时替换为真实 CDN 地址
+--   * 运营位（banner）图片为后端可访问路径（/uploads/banner/...），由后端静态挂载提供
 --   * 初始化脚本含 DROP TABLE，仅在空库/重建场景使用
 --   * 与 database-design.md §3.3 一致：product 表字段清单无 sort，
 --     故 idx_category_status 使用 (category_id, status)
