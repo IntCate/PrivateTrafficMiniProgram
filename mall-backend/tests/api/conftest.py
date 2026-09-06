@@ -94,7 +94,7 @@ def _seed_base() -> list[Any]:
             original_price=Decimal("129.00"),
             main_image="https://img.example.com/p.png",
             images=["https://img.example.com/p1.png"],
-            detail_html="<p>详情</p>",
+            detail_blocks=[{"type": "text", "content": "详情"}],
             spec={"颜色": "黑"},
             sales=10,
             stock=100,

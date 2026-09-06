@@ -68,7 +68,7 @@ def _product(id: int, *, name: str = "商品", status: int = 1) -> SimpleNamespa
         original_price=Decimal("129.00"),
         main_image="https://img.example.com/p.png",
         images=["https://img.example.com/p1.png"],
-        detail_html="<p>详情</p>",
+        detail_blocks=[{"type": "text", "content": "详情"}],
         spec={"颜色": "黑"},
         sales=10,
         stock=100,
@@ -612,6 +612,7 @@ def test_update_category_not_found(env: FakeDb) -> None:
 
 
 def test_delete_category_ok(env: FakeDb) -> None:
+    env._data[Product].clear()  # 清空分类下商品，使分类可删
     service.delete_category(env, 1)
     assert 1 not in env._data[Category]
 

@@ -45,10 +45,20 @@ def _sku(
 
 
 def _product(
-    id: int, *, status: int = 1, deleted: bool = False, name: str = "城市慢跑鞋"
+    id: int,
+    *,
+    status: int = 1,
+    deleted: bool = False,
+    name: str = "城市慢跑鞋",
+    sales: int = 0,
 ) -> SimpleNamespace:
     return SimpleNamespace(
-        id=id, status=status, deleted=deleted, name=name, main_image="/img.jpg"
+        id=id,
+        status=status,
+        deleted=deleted,
+        name=name,
+        main_image="/img.jpg",
+        sales=sales,
     )
 
 
@@ -98,6 +108,7 @@ def _order_item(
     return SimpleNamespace(
         id=id,
         sku_id=sku_id,
+        product_id=1,
         product_name="城市慢跑鞋",
         sku_text="白；40",
         price=Decimal(price),
@@ -510,6 +521,7 @@ def test_pay_ok(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:
     assert data["payTime"] is not None
     assert db._skus[20].stock == 49  # 支付成功转实扣
     assert db._skus[20].lock_stock == 0  # 释放锁定
+    assert db._products[1].sales == 1  # 支付成功累加销量
 
 
 def test_pay_repeat_409(env: tuple[FakeDb, FakeCartRepo, dict]) -> None:

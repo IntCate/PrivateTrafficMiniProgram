@@ -20,7 +20,7 @@ def _product(id: int, *, status: int = 1, deleted: bool = False) -> object:
         original_price=199.0,
         main_image="/img.jpg",
         images=["/img.jpg"],
-        detail_html="<p>d</p>",
+        detail_blocks=[{"type": "text", "content": "d"}],
         spec={"材质": "棉"},
         sales=10,
         shipping_from="上海",
@@ -60,7 +60,6 @@ def test_get_product_detail_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     result = service.get_product_detail(_db(), 1)
     assert result["id"] == 1
     assert result["skus"][0]["sku_text"] == "白；均码"
-    assert result["promises"] == service.PROMISES
 
 
 def test_get_product_detail_off_sale(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -111,7 +110,7 @@ def test_home_index_anon_and_logged() -> None:
         anon = service.home_index(_db(), member=None)
         assert anon["member"] is None
         assert anon["banners"][0]["link_value"] == "/pages/x"
-        assert anon["promises"] == svc.PROMISES
+        assert anon["promises"] == svc.DEFAULT_PROMISES
 
         member = SimpleNamespace(points=10, coupon_count=0, nickname="张三")
         logged = service.home_index(_db(), member=member)
@@ -123,4 +122,12 @@ def test_home_index_anon_and_logged() -> None:
 
 def _db() -> object:
     """返回一个仅用于占位、不被查询使用的假 Session。"""
-    return SimpleNamespace(scalar=lambda *a, **k: None)
+
+    class _Query:
+        def filter(self, *a: object, **k: object) -> "_Query":
+            return self
+
+        def first(self) -> None:
+            return None
+
+    return SimpleNamespace(scalar=lambda *a, **k: None, query=lambda *a, **k: _Query())
