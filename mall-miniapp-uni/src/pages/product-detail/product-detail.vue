@@ -6,9 +6,14 @@
       <view class="empty-btn" @click="goBack">返回</view>
     </view>
     <view v-else class="container">
-      <!-- 商品图 -->
+      <!-- 商品图轮播 -->
       <view id="gallery" class="gallery">
-        <image class="gallery-image" :src="currentImage" mode="aspectFill" />
+        <swiper class="gallery-swiper" circular :indicator-dots="galleryImages.length > 1" indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#FFFFFF" :current="galleryIndex" @change="onGalleryChange">
+          <swiper-item v-for="(img, i) in galleryImages" :key="i">
+            <image class="gallery-image" :src="img" mode="aspectFill" />
+          </swiper-item>
+        </swiper>
+        <view v-if="galleryImages.length > 1" class="gallery-count">{{ galleryIndex + 1 }}/{{ galleryImages.length }}</view>
       </view>
 
       <!-- 价格标题 -->
@@ -16,39 +21,37 @@
         <view class="price-row">
           <text class="price-main">¥{{ currentPrice }}</text>
           <text class="price-original">¥{{ currentOriginalPrice }}</text>
-          <view class="price-tag">热销</view>
+          <view v-for="(tag, ti) in productTags" :key="ti" class="price-tag">{{ tag }}</view>
         </view>
         <text class="product-title">{{ currentTitle }}</text>
         <text class="product-meta">已售 {{ product ? product.sales.toLocaleString() : 0 }}+ · {{ product ? product.shippingFrom : '' }}发货 · {{ product && product.isFreeShipping ? '包邮' : '运费到付' }}</text>
       </view>
 
-      <!-- 品牌承诺 -->
-      <view id="brand-promises" class="promises-section">
-        <view class="promise-card">
-          <text class="promise-icon">正</text>
-          <text class="promise-name">正品保障</text>
-        </view>
-        <view class="promise-card">
-          <text class="promise-icon">退</text>
-          <text class="promise-name">7天无理由</text>
-        </view>
-        <view class="promise-card">
-          <text class="promise-icon">快</text>
-          <text class="promise-name">极速发货</text>
-        </view>
-      </view>
-
       <!-- 详情标签 -->
       <view id="detail-tabs" class="detail-section">
         <view class="tabs">
-          <view class="tab active">商品详情</view>
-          <view class="tab">参数规格</view>
-          <view class="tab">用户评价</view>
+          <view class="tab" :class="{ active: activeTab === 'detail' }" @click="activeTab = 'detail'">商品详情</view>
+          <view class="tab" :class="{ active: activeTab === 'spec' }" @click="activeTab = 'spec'">参数规格</view>
+          <view class="tab" :class="{ active: activeTab === 'review' }" @click="activeTab = 'review'">用户评价</view>
         </view>
         <view class="tab-content">
-          <rich-text v-if="product" class="detail-text" :nodes="product.detailHtml"></rich-text>
-          <view class="spec-grid" v-if="product">
-            <view class="spec-item" v-for="(value, key) in product.spec" :key="key">{{ key }}：{{ value }}</view>
+          <view v-if="activeTab === 'detail'">
+            <view v-if="detailBlocks.length" class="detail-blocks">
+              <view v-for="(block, bi) in detailBlocks" :key="bi" class="detail-block">
+                <text v-if="block.type === 'text'" class="detail-block-text">{{ block.content }}</text>
+                <image v-else-if="block.type === 'image'" class="detail-block-image" :src="toAbs(block.url)" mode="widthFix" />
+              </view>
+            </view>
+            <view v-else class="detail-empty">暂无详情内容</view>
+          </view>
+          <view v-else-if="activeTab === 'spec'">
+            <view v-if="product" class="spec-grid">
+              <view class="spec-item" v-for="(value, key) in product.spec" :key="key">{{ key }}：{{ value }}</view>
+            </view>
+          </view>
+          <view v-else class="review-empty">
+            <uni-icons type="chat" size="40" color="#E5E5E5" />
+            <text class="review-empty-text">暂无评价</text>
           </view>
         </view>
       </view>
@@ -138,6 +141,22 @@ const favorited = ref(false);
 const favoriteLoading = ref(false);
 const skuPanelVisible = ref(false);
 const skuPanelMode = ref('cart');
+const activeTab = ref('detail');
+const galleryIndex = ref(0);
+
+const galleryImages = computed(() => {
+  if (!product.value) return [];
+  const imgs = (product.value.images && product.value.images.length ? product.value.images : [product.value.mainImage]).map(toAbs);
+  return imgs;
+});
+
+const detailBlocks = computed(() => (product.value && product.value.detailBlocks ? product.value.detailBlocks : []));
+
+const productTags = computed(() => (product.value && product.value.tags ? product.value.tags : []));
+
+const onGalleryChange = (e) => {
+  galleryIndex.value = e.detail.current;
+};
 
 const attrGroups = computed(() => {
   if (!product.value || !product.value.skus.length) return [];
@@ -320,13 +339,31 @@ const goBack = () => {
 // 商品图
 .gallery {
   padding: 8px 0;
+  position: relative;
+}
+
+.gallery-swiper {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .gallery-image {
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: 16px;
+  height: 100%;
   background-color: $mall-muted;
+}
+
+.gallery-count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  color: #FFFFFF;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 // 价格标题
@@ -567,44 +604,6 @@ const goBack = () => {
   background-color: $mall-card;
 }
 
-// 品牌承诺
-.promises-section {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px 0;
-}
-
-.promise-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  background-color: $mall-card;
-  border-radius: 12px;
-  border: 1px solid $mall-border;
-}
-
-.promise-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-  color: $mall-accent-foreground;
-  background-color: rgba($mall-accent, 0.15);
-}
-
-.promise-name {
-  font-size: 11px;
-  color: $mall-foreground;
-  font-weight: 500;
-}
-
 // 详情
 .detail-section {
   padding: 12px 0;
@@ -632,11 +631,30 @@ const goBack = () => {
   padding: 16px 0;
 }
 
-.detail-text {
+.detail-empty {
+  padding: 40rpx 0;
+  text-align: center;
+  font-size: 13px;
+  color: $mall-muted;
+}
+
+.detail-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-block-text {
   display: block;
   font-size: 13px;
   color: $mall-foreground;
   line-height: 1.6;
+}
+
+.detail-block-image {
+  width: 100%;
+  border-radius: 8px;
+  background-color: $mall-muted;
 }
 
 .spec-grid {
@@ -652,6 +670,19 @@ const goBack = () => {
   border: 1px solid $mall-border;
   border-radius: 8px;
   font-size: 12px;
+  color: $mall-muted-foreground;
+}
+
+.review-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 0;
+}
+
+.review-empty-text {
+  font-size: 13px;
   color: $mall-muted-foreground;
 }
 

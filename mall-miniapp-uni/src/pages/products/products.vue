@@ -36,8 +36,8 @@
                     <text class="price-current">¥{{ item.price }}</text>
                     <text class="price-original">¥{{ item.originalPrice }}</text>
                   </view>
-                  <view class="add-btn" @click.stop="addToCart(item)">
-                    <uni-icons type="plus" size="13" color="#FFFFFF" />
+                  <view class="add-btn" @click.stop="openSkuPanel(item)">
+                    <text class="add-btn-plus">+</text>
                   </view>
                 </view>
               </view>
@@ -50,11 +50,58 @@
         </scroll-view>
       </view>
     </view>
+
+    <!-- SKU 选择弹层 -->
+    <view v-if="skuPanelVisible" class="sku-mask" @click="closeSkuPanel">
+      <view class="sku-panel" @click.stop>
+        <view class="sku-panel-head">
+          <image class="sku-panel-image" :src="currentImage" mode="aspectFill" />
+          <view class="sku-panel-info">
+            <text class="sku-panel-price">¥{{ currentPrice }}</text>
+            <text class="sku-panel-stock">库存 {{ currentSku ? currentSku.stock : 0 }} 件</text>
+            <text class="sku-panel-selected">已选：{{ currentSku ? currentSku.skuText : '' }}</text>
+          </view>
+          <view class="sku-panel-close" @click="closeSkuPanel">
+            <uni-icons type="closeempty" size="20" color="#8A8A8A" />
+          </view>
+        </view>
+
+        <scroll-view class="sku-panel-body" scroll-y>
+          <view class="sku-group" v-for="(group, gi) in attrGroups" :key="group.name">
+            <text class="sku-group-label">{{ group.name }}</text>
+            <view class="sku-options">
+              <view
+                v-for="(value, vi) in group.values"
+                :key="value"
+                class="sku-option"
+                :class="{ active: selected[gi] === vi }"
+                @click="selected[gi] = vi"
+              >
+                {{ value }}
+              </view>
+            </view>
+          </view>
+          <view class="sku-group quantity-group">
+            <text class="sku-group-label">数量</text>
+            <view class="quantity-control">
+              <view class="qty-btn" @click="quantity > 1 && quantity--">-</view>
+              <text class="qty-value">{{ quantity }}</text>
+              <view class="qty-btn" @click="currentSku && quantity < currentSku.stock && quantity++">+</view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view class="sku-panel-footer">
+          <view class="action-btn btn-outline sku-cancel-btn" @click="closeSkuPanel">取消</view>
+          <view class="action-btn btn-primary sku-confirm-btn" @click="confirmSku">加入购物车</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { categoryApi, productApi, cartApi } from '@/api';
 import { onWS } from '@/api/ws';
@@ -65,6 +112,13 @@ const activeCategory = ref(null);
 const productScrollTop = ref(0);
 const keyword = ref('');
 const allProducts = ref([]);
+
+// SKU 选择弹层状态
+const skuPanelVisible = ref(false);
+const skuPanelLoading = ref(false);
+const skuProduct = ref(null);
+const selected = ref([]);
+const quantity = ref(1);
 
 const loadCategories = async () => {
   try {
@@ -117,15 +171,77 @@ const goDetail = (item) => {
   uni.navigateTo({ url: `/pages/product-detail/product-detail?id=${item.id}` });
 };
 
-const addToCart = async (item) => {
+// 计算规格组（由商品 skus 聚合）
+const attrGroups = computed(() => {
+  if (!skuProduct.value || !skuProduct.value.skus.length) return [];
+  const groups = [];
+  skuProduct.value.skus.forEach((s) => {
+    s.attrs.forEach((a) => {
+      let group = groups.find((g) => g.name === a.name);
+      if (!group) {
+        group = { name: a.name, values: [] };
+        groups.push(group);
+      }
+      if (!group.values.includes(a.value)) group.values.push(a.value);
+    });
+  });
+  return groups;
+});
+
+// 依据当前选择匹配出具体 SKU
+const currentSku = computed(() => {
+  if (!skuProduct.value || !skuProduct.value.skus.length) return null;
+  const selectedAttrs = attrGroups.value.map((g, gi) => ({ name: g.name, value: g.values[selected.value[gi]] }));
+  return (
+    skuProduct.value.skus.find((s) => selectedAttrs.every((a) => s.attrs.some((sa) => sa.name === a.name && sa.value === a.value))) ||
+    skuProduct.value.skus[0]
+  );
+});
+
+const currentPrice = computed(() =>
+  currentSku.value ? currentSku.value.price : skuProduct.value ? skuProduct.value.price : 0
+);
+
+const currentImage = computed(() => {
+  const raw =
+    currentSku.value && currentSku.value.image
+      ? currentSku.value.image
+      : skuProduct.value
+        ? skuProduct.value.mainImage
+        : '';
+  return toAbs(raw);
+});
+
+// 点击"+"：加载商品详情并弹出规格选择
+const openSkuPanel = async (item) => {
+  if (skuPanelLoading.value) return;
   try {
+    skuPanelLoading.value = true;
     const detail = await productApi.detail(item.id);
-    const sku = detail && detail.skus && detail.skus[0];
-    if (!sku) {
-      uni.showToast({ title: '暂无可售规格', icon: 'none' });
-      return;
-    }
-    await cartApi.addItem(sku.id, 1, false);
+    skuProduct.value = detail;
+    quantity.value = 1;
+    selected.value = attrGroups.value.map(() => 0);
+    skuPanelVisible.value = true;
+  } catch (e) {
+    uni.showToast({ title: e.message || '商品加载失败', icon: 'none' });
+  } finally {
+    skuPanelLoading.value = false;
+  }
+};
+
+const closeSkuPanel = () => {
+  skuPanelVisible.value = false;
+  skuProduct.value = null;
+};
+
+const confirmSku = async () => {
+  if (!currentSku.value) {
+    uni.showToast({ title: '暂无可售规格', icon: 'none' });
+    return;
+  }
+  try {
+    await cartApi.addItem(currentSku.value.id, quantity.value, false);
+    closeSkuPanel();
     uni.showToast({ title: '已加入购物车', icon: 'none' });
   } catch (e) {
     uni.showToast({ title: e.message || '加入失败', icon: 'none' });
@@ -315,5 +431,224 @@ const addToCart = async (item) => {
   justify-content: center;
   box-shadow: $mall-shadow-2;
   flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+}
+
+.add-btn-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  color: $mall-primary-foreground;
+}
+
+// SKU 弹层
+.sku-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sku-panel {
+  width: 100%;
+  background-color: $mall-background;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sku-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid $mall-border;
+}
+
+.sku-panel-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  background-color: $mall-card;
+  flex-shrink: 0;
+}
+
+.sku-panel-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sku-panel-price {
+  font-size: 18px;
+  font-weight: bold;
+  color: $mall-primary;
+}
+
+.sku-panel-stock {
+  font-size: 12px;
+  color: $mall-muted-foreground;
+}
+
+.sku-panel-selected {
+  font-size: 12px;
+  color: $mall-foreground;
+}
+
+.sku-panel-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sku-panel-body {
+  flex: 1;
+  padding: 16px;
+  box-sizing: border-box;
+  max-height: 50vh;
+}
+
+.sku-group {
+  margin-bottom: 16px;
+}
+
+.sku-group-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: $mall-foreground;
+  margin-bottom: 8px;
+}
+
+.sku-panel-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid $mall-border;
+}
+
+.sku-cancel-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sku-confirm-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sku-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sku-option {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: $mall-foreground;
+  background-color: $mall-card;
+  border: 1px solid $mall-border;
+}
+
+.sku-option.active {
+  color: $mall-primary;
+  background-color: rgba($mall-primary, 0.05);
+  border-color: $mall-primary;
+  font-weight: 500;
+}
+
+.quantity-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.quantity-group .sku-group-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.quantity-group .quantity-control {
+  margin-left: auto;
+}
+
+.quantity-control {
+  flex-shrink: 0;
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid $mall-border;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 18px;
+  box-sizing: border-box;
+}
+
+.qty-btn {
+  width: 22px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $mall-muted;
+  color: $mall-foreground;
+  font-size: 12px;
+}
+
+.qty-value {
+  width: 26px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: $mall-foreground;
+  background-color: $mall-card;
+}
+
+.action-btn {
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-outline {
+  border: 1px solid $mall-primary;
+  color: $mall-primary;
+}
+
+.btn-primary {
+  background-color: $mall-primary;
+  color: $mall-primary-foreground;
 }
 </style>

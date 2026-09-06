@@ -122,8 +122,12 @@ function buildProducts() {
       price,
       originalPrice,
       mainImage: image,
-      images: [image],
-      detailHtml: `<p>${subTitle}</p><p>精选优质材料，匠心工艺，品质保证。</p>`,
+      images: [image, '/static/hero-banner.jpg'],
+      detailBlocks: [
+        { type: 'text', content: subTitle },
+        { type: 'image', url: image },
+        { type: 'text', content: '精选优质材料，匠心工艺，品质保证。' },
+      ],
       spec,
       sales,
       shippingFrom: '上海',
@@ -328,7 +332,7 @@ function releaseStock(order) {
   });
 }
 
-// 支付成功转实扣：stock -= qty 且 lockStock -= qty（对齐真实后端 /  api-design §9.5）
+// 支付成功转实扣：stock -= qty 且 lockStock -= qty，并累加商品销量 sales += qty（对齐真实后端 / api-design §9.5）
 function settleStock(order) {
   order.items.forEach((item, index) => {
     const skuId = order.itemSkus ? order.itemSkus[index] : null;
@@ -337,6 +341,7 @@ function settleStock(order) {
     if (found) {
       found.sku.stock = Math.max(0, found.sku.stock - item.quantity);
       found.sku.lockStock = Math.max(0, found.sku.lockStock - item.quantity);
+      found.product.sales = (found.product.sales || 0) + item.quantity;
     }
   });
 }
@@ -590,7 +595,7 @@ export const store = {
       originalPrice: product.originalPrice,
       mainImage: product.mainImage,
       images: product.images,
-      detailHtml: product.detailHtml,
+      detailBlocks: product.detailBlocks || [],
       spec: product.spec,
       sales: product.sales,
       shippingFrom: product.shippingFrom,
@@ -604,7 +609,6 @@ export const store = {
         stock: availableStock(s),
         image: s.image,
       })),
-      promises: state.promises,
     };
   },
 
