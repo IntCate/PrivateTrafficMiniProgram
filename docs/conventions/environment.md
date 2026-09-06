@@ -105,7 +105,7 @@
 
 - 加入购物车需补 `skuId`（默认取首个 SKU）；详情页 SKU 改为接口动态渲染；
 
-- `me.vue` 切 `/api/member/overview`；401 时清理 token 并回登录页。
+- `me.vue` 切 `/api/member/overview`；401 时自动清除本地 token 并静默重新登录，成功后重试原请求（mock 模式仅提示登录失效，不自动重登，见 auth.md §1.3）。
 
 ## 5. 密钥与账号管理
 

@@ -86,7 +86,7 @@
 Authorization: Bearer {token}
 ```
 
-- token 有效期 7 天，会话记录保存至 `member_session` 表（见数据库设计 3.16）；过期返回 `401`，前端引导重新登录
+- token 有效期 7 天，会话记录保存至 `member_session` 表（见数据库设计 3.16）；过期返回 `401`，前端自动清除本地 token 并静默重新登录，成功后重试原请求（mock 模式仅提示登录失效，不自动重登，见 auth.md §1.3）
 
 - 需要登录的接口：购物车、地址、订单、收藏、会员中心等（标注 🔒）
 
@@ -204,6 +204,8 @@ GET /api/home/index
 
 - `banners` 对应 hero 主横幅，`themes` 对应轮播"主题精选"
 
+- `promises` 为首页品牌承诺，来自 `sys_config.home_promises`（JSON 数组），后台"系统配置"可编辑；缺失时回退默认值 `["正品保障","7天无理由","极速发货"]`
+
 ***
 
 ## 5. 分类接口
@@ -291,7 +293,11 @@ GET /api/products/{id}
   "originalPrice": 599.00,
   "mainImage": "https://...",
   "images": ["https://..."],
-  "detailHtml": "<p>…</p>",
+  "detailBlocks": [
+    { "type": "text", "content": "透气网面，轻弹缓震" },
+    { "type": "image", "url": "/uploads/detail/xxx.jpg" },
+    { "type": "text", "content": "精选优质材料，匠心工艺" }
+  ],
   "spec": { "材质": "织物+TPU", "闭合": "系带", "适用": "跑步/休闲", "产地": "中国" },
   "sales": 12000,
   "shippingFrom": "上海",
@@ -299,14 +305,15 @@ GET /api/products/{id}
   "tags": ["热销", "包邮"],
   "skus": [
     { "id": 10, "attrs": [{ "name": "颜色", "value": "云雾白" }, { "name": "尺码", "value": "40" }], "skuText": "云雾白；40", "price": 299.00, "stock": 88, "image": "" }
-  ],
-  "promises": ["正品保障", "7天无理由", "极速发货"]
+  ]
 }
 ```
 
 - `skus` 为全部可售 SKU；`attrs` 为通用属性组数组（`name` + `value`），支持任意数量属性维度（如"颜色 × 尺码 × 款式"）；详情页弹层按 `attrs` 动态聚合属性组渲染
 
 - `skus[].stock` 返回**可用库存**（`product_sku.stock - lock_stock`，对齐 §7.1 口径），前端弹层数量上限直接据此使用
+
+- `detailBlocks` 为**结构化详情区块**（`[{type:text|image, content/url}]`），前端按区块渲染图文混排
 
 - 商品下架统一返回 `1102`（业务可见性：下架商品不参与列表/详情返回）；仅商品 ID 不存在时返回 `404`
 
@@ -772,7 +779,7 @@ POST /api/orders/{id}/pay
 
 - `mock`：联调模式，直接置 `paid`（对应前端当前模拟支付）
 
-- 支付成功（含 `mock`）同时**库存转实扣**：`product_sku.stock -= qty` 且 `lock_stock -= qty`（下单时已预占 `lock_stock`，支付后实扣可售库存；对齐 §9.2 口径）
+- 支付成功（含 `mock`）同时**库存转实扣**：`product_sku.stock -= qty` 且 `lock_stock -= qty`（下单时已预占 `lock_stock`，支付后实扣可售库存；对齐 §9.2 口径），并**累加商品销量**：`product.sales += qty`（详情页"已售 N+"据此动态增长）
 
 - `wechat`（预留）：返回 `{ "payParams": { "timeStamp": "…", "nonceStr": "…", "package": "…", "signType": "RSA", "paySign": "…" } }`，前端 `wx.requestPayment` 后回调通知
 
@@ -1148,7 +1155,7 @@ POST /api/upload
 
 - 鉴权：会员 `Authorization: Bearer`；`multipart/form-data`，字段名 `file`，可选表单字段 `category`（用途→存储目录，白名单 `after_sale`（默认）/ `avatar`，非法返回 `400`）
 
-- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
+- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 10MB，否则 `400`
 
 - 返回 `data.url` 相对路径（`/uploads/{category}/{uuid}.ext`），经 `/uploads` 静态挂载访问，小程序预览时拼接 `BASE_URL`
 
@@ -1162,7 +1169,7 @@ POST /admin/api/upload
 
 - 鉴权：后台 `Authorization: Bearer`（admin/operator 角色）；`multipart/form-data`，字段名 `file`，可选表单字段 `category`（用途→存储目录，白名单 `banner`（默认）/ `product` / `category`，非法返回 `400`）
 
-- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 5MB，否则 `400`
+- 仅允许 `jpg/jpeg/png/gif/webp`，单张 ≤ 10MB，否则 `400`
 
 - 返回 `data.url` 相对路径（`/uploads/{category}/{uuid}.ext`），经 `/uploads` 静态挂载访问；管理后台 `Banners.vue` 用 `el-upload` 上传组件选择图片，列表用 `el-image` 直接渲染相对路径（vite 代理 `/uploads` 到后端），小程序端预览时拼接 `BASE_URL`
 
@@ -1178,7 +1185,7 @@ POST /admin/api/upload
 
 | 模块  | 接口                                                                                                                                                                                                          | 说明                                                           |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 商品  | `GET/POST /admin/api/products`、`PUT/DELETE /admin/api/products/{id}`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}`、`POST /admin/api/upload`（category=product） | 商品 CRUD、上下架、SKU 维护、主图上传；列表支持 `category_id` 过滤（父分类含其全部子孙分类商品） |
+| 商品  | `GET/POST /admin/api/products`、`GET/PUT/DELETE /admin/api/products/{id}`、`PUT /admin/api/products/{id}/status`、`GET/POST /admin/api/products/{id}/skus`、`PUT/DELETE /admin/api/products/{id}/skus/{skuId}`、`POST /admin/api/upload`（category=product） | 商品 CRUD、上下架、SKU 维护、主图上传；列表支持 `category_id` 过滤（父分类含其全部子孙分类商品） |
 | 分类  | `GET/POST/PUT/DELETE /admin/api/categories`                                                                                                                                                                 | 分类管理；删除时若该分类下仍有商品，后端返回 `400` 拒删                              |
 | 订单  | `GET /admin/api/orders`、`GET /admin/api/orders/{id}`、`PUT /admin/api/orders/{id}/ship`                                                                                                                      | 查询、发货                                                        |
 | 售后  | `GET /admin/api/after-sales`、`PUT /admin/api/after-sales/{id}/audit`                                                                                                                                        | 审核                                                           |
@@ -1242,7 +1249,7 @@ POST /admin/api/upload
 
 - 覆盖本文档 §3\~§11 全部已实现接口，对接 12 个前端页面。
 
-- 全仿真行为：登录/退出 token 生命周期（7 天有效期）、订单状态机（pending→paid→shipped→completed，pending→cancelled，paid/shipped/completed→refund 分支）、`availableActions` 动态计算（含 refund）、库存预占与回补（下单锁库存，取消/退款释放锁定；**mock 层未建模"支付转实扣"**，真实后端为支付实扣 + 退款回补已实扣库存，差异见 known-issues #6）、幂等收藏（同商品重复收藏返回既有记录）、下单后删除本次购物车项。
+- 全仿真行为：登录/退出 token 生命周期（7 天有效期）、订单状态机（pending→paid→shipped→completed，pending→cancelled，paid/shipped/completed→refund 分支）、`availableActions` 动态计算（含 refund）、库存预占与回补（下单锁库存，取消/退款释放锁定；支付转实扣 `stock`/`lock_stock` 双扣并累加销量 `sales += qty`，退款回补已实扣库存）、幂等收藏（同商品重复收藏返回既有记录）、下单后删除本次购物车项。
 
 ### 16.2 核对补充/澄清的口径
 
@@ -1259,7 +1266,7 @@ POST /admin/api/upload
 
 | 错误码         | 触发场景（mock 实测）                                                               |
 | ----------- | --------------------------------------------------------------------------- |
-| 401         | 未登录或 token 过期（7 天）调用需鉴权接口；页面捕获后提示重新登录                                       |
+| 401         | 未登录或 token 过期（7 天）调用需鉴权接口；前端自动清除本地 token 并静默重新登录，成功后重试原请求                   |
 | 400         | 勾选项为空结算预览、订单商品为空、地址参数不合法、无需结算商品的 `buy-again`                                |
 | 404         | SKU/商品/购物车项/地址/订单不存在                                                        |
 | 409         | 对已支付订单重复支付（幂等冲突），前端提示"订单已支付"                                                |
@@ -1277,9 +1284,8 @@ POST /admin/api/upload
 
 - 直购接口（`preview-direct`/`direct`）不写购物车、不删除购物车项，仅做单商品核价 + 下单（§9.1 直购口径）
 
-- 库存预占/结转：`pending` 下单即预占（`lock_stock += qty`）；取消或超时未支付释放锁定（`lock_stock -= qty`）；支付成功转实扣（`stock`/`lock_stock` 双扣）；退款（refund）回补已实扣库存（`stock += qty`）
+- 库存预占/结转：`pending` 下单即预占（`lock_stock += qty`）；取消或超时未支付释放锁定（`lock_stock -= qty`）；支付成功转实扣（`stock`/`lock_stock` 双扣）并累加销量（`product.sales += qty`）；退款（refund）回补已实扣库存（`stock += qty`）
 
 - `availableActions` 由服务端按状态计算返回，前端不做状态机硬编码（§9.3）
 
 - 时间统一 `yyyy-MM-dd HH:mm:ss`（`payDeadline` 除外，为 ISO 8601 `yyyy-MM-ddTHH:mm:ss`）；金额为数字（元），不返回货币符号
-

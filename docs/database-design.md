@@ -137,9 +137,9 @@ coupon (券模板)
 | original\_price    | DECIMAL(10,2)   | YES | NULL | 划线价/原价                                                  |
 | main\_image        | VARCHAR(512)    | NO  | —    | 主图                                                      |
 | images             | JSON            | YES | NULL | 图片列表（`["...","..."]`），商品详情轮播                            |
-| detail\_html       | TEXT            | YES | NULL | 商品详情富文本（详情 tab）                                         |
+| detail\_blocks     | JSON            | YES | NULL | 商品详情区块（`[{type:text|image, content/url}]`，图文混排）            |
 | spec               | JSON            | YES | NULL | 参数规格（如 `{"材质":"织物+TPU"}`，参数规格 tab）                      |
-| sales              | INT UNSIGNED    | NO  | 0    | 已售数量（前端展示"已售 1.2万+"）                                    |
+| sales              | INT UNSIGNED    | NO  | 0    | 已售数量（前端展示"已售 1.2万+"；支付成功自动累加 `+= qty`）                  |
 | stock              | INT UNSIGNED    | NO  | 0    | 总库存（兜底，精确库存以 SKU 为准）                                    |
 | tags               | JSON            | YES | NULL | 标签（如 `["热销","包邮"]`）                                     |
 | shipping\_from     | VARCHAR(32)     | YES | NULL | 发货地（前端"上海发货"）                                           |
@@ -431,7 +431,7 @@ coupon (券模板)
 | created\_at   | DATETIME        | NO  | 当前时间 | —            |
 | updated\_at   | DATETIME        | NO  | 当前时间 | —            |
 
-预留键示例：`service_hotline`（客服热线 400-800-8888）、`free_shipping_threshold`（包邮门槛）、`app_version`。
+预留键示例：`service_hotline`（客服热线 400-800-8888）、`free_shipping_threshold`（包邮门槛）、`app_version`、`home_promises`（首页品牌承诺，JSON 数组，如 `["正品保障","7天无理由","极速发货"]`）。
 
 ***
 

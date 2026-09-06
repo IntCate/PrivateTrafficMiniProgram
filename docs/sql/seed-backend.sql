@@ -18,7 +18,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 INSERT INTO `sys_config` (`config_key`, `config_value`, `remark`) VALUES
 ('service_hotline',         '400-800-8888', '客服热线'),
 ('free_shipping_threshold', '0',           '包邮门槛（0 表示全包邮）'),
-('app_version',             '1.0.0',       'APP 版本');
+('app_version',             '1.0.0',       'APP 版本'),
+('home_promises',           '["正品保障","7天无理由","极速发货"]', '首页品牌承诺（JSON 数组）');
 
 -- ---------------------------------------------------------------------------
 -- 2. 管理员（初始账号，上线前必须修改密码）
