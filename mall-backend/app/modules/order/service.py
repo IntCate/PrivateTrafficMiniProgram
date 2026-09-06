@@ -204,9 +204,10 @@ def _release_stock(db: Session, order: Order) -> None:
 
 
 def _settle_stock(db: Session, order: Order) -> None:
-    """支付成功转实扣：stock -= qty 且 lock_stock -= qty（对齐 PRD §4.x / api-design §9）。
+    """支付成功转实扣：stock -= qty 且 lock_stock -= qty，并累加商品销量 sales += qty。
 
-    预占成功时已保证 stock - lock_stock >= qty，此处 max 仅为防御性下限。
+    对齐 PRD §4.x / api-design §9；预占成功时已保证 stock - lock_stock >= qty，
+    此处 max 仅为防御性下限。
     """
     items = OrderItemRepository(db).list_by_order_ids([order.id])
     for item in items:
@@ -214,6 +215,9 @@ def _settle_stock(db: Session, order: Order) -> None:
         if sku:
             sku.stock = max(sku.stock - item.quantity, 0)
             sku.lock_stock = max(sku.lock_stock - item.quantity, 0)
+        product = db.get(Product, item.product_id)
+        if product:
+            product.sales = (product.sales or 0) + item.quantity
 
 
 def _resolve_coupon(

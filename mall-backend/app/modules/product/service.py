@@ -1,12 +1,14 @@
 """商品模块业务逻辑：分类、商品列表/详情、首页聚合。"""
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BizException
+from app.modules.admin.models import SysConfig
 from app.modules.product.models import BANNER_POS_HERO, BANNER_POS_THEME, PRODUCT_STATUS_ON
 from app.modules.product.repository import (
     BannerRepository,
@@ -17,8 +19,24 @@ from app.modules.product.repository import (
 
 logger = logging.getLogger("app.modules.product.service")
 
-# 品牌承诺（对齐 api-design §4.1 与前端 mock）
-PROMISES: list[str] = ["正品保障", "7天无理由", "极速发货"]
+# 品牌承诺默认值（对齐 api-design §4.1 与前端 mock）；可通过 sys_config.home_promises 覆盖
+DEFAULT_PROMISES: list[str] = ["正品保障", "7天无理由", "极速发货"]
+# sys_config 配置键
+CONFIG_HOME_PROMISES = "home_promises"
+
+
+def _get_promises(db: Session) -> list[str]:
+    """读取品牌承诺：优先取 sys_config.home_promises（JSON 数组），缺失回退默认值。"""
+    row = db.query(SysConfig).filter(SysConfig.config_key == CONFIG_HOME_PROMISES).first()
+    if not row or not row.config_value:
+        return list(DEFAULT_PROMISES)
+    try:
+        parsed = json.loads(row.config_value)
+        if isinstance(parsed, list) and parsed:
+            return [str(x) for x in parsed]
+    except (ValueError, TypeError):
+        logger.warning("sys_config.home_promises 解析失败，回退默认值: %s", row.config_value)
+    return list(DEFAULT_PROMISES)
 
 
 def list_categories(db: Session) -> list[dict[str, Any]]:
@@ -103,7 +121,7 @@ def get_product_detail(db: Session, product_id: int) -> dict[str, Any]:
         "original_price": product.original_price,
         "main_image": product.main_image,
         "images": _as_list(product.images),
-        "detail_html": product.detail_html,
+        "detail_blocks": _as_list(product.detail_blocks),
         "spec": _as_dict(product.spec),
         "sales": product.sales,
         "shipping_from": product.shipping_from,
@@ -121,7 +139,6 @@ def get_product_detail(db: Session, product_id: int) -> dict[str, Any]:
             }
             for s in skus
         ],
-        "promises": PROMISES,
     }
 
 
@@ -165,7 +182,7 @@ def home_index(db: Session, member: Any | None = None) -> dict[str, Any]:
             }
             for b in themes
         ],
-        "promises": PROMISES,
+        "promises": _get_promises(db),
     }
 
 

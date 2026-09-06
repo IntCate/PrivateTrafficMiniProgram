@@ -51,14 +51,13 @@ class ProductDetailOut(CamelModel):
     original_price: float | None = None
     main_image: str
     images: list[str] = []
-    detail_html: str | None = None
+    detail_blocks: list[dict[str, Any]] = []
     spec: dict[str, Any] = {}
     sales: int = 0
     shipping_from: str | None = None
     is_free_shipping: bool = True
     tags: list[str] = []
     skus: list[ProductSkuOut] = []
-    promises: list[str] = []
 
 
 class BannerOut(CamelModel):

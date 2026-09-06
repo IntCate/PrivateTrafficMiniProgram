@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, BaseFields, SoftDeleteMixin
@@ -46,7 +46,9 @@ class Product(Base, BaseFields, SoftDeleteMixin):
     original_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), comment="划线价/原价")
     main_image: Mapped[str] = mapped_column(String(512), comment="主图")
     images: Mapped[list[Any] | None] = mapped_column(JSON, comment="图片列表(JSON)")
-    detail_html: Mapped[str | None] = mapped_column(Text, comment="详情富文本")
+    detail_blocks: Mapped[list[Any] | None] = mapped_column(
+        JSON, comment="详情区块(JSON)：[{type:text|image, content/url}]"
+    )
     spec: Mapped[dict[Any, Any] | None] = mapped_column(JSON, comment="参数规格(JSON)")
     sales: Mapped[int] = mapped_column(Integer, default=0, comment="已售数量")
     stock: Mapped[int] = mapped_column(Integer, default=0, comment="总库存")

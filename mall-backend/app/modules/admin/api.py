@@ -297,9 +297,9 @@ class UploadOut(BaseModel):
     url: str
 
 
-# 允许的图片类型与体积上限（5MB）
+# 允许的图片类型与体积上限（10MB）
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-MAX_SIZE = 5 * 1024 * 1024
+MAX_SIZE = 10 * 1024 * 1024
 
 
 @router.post("/upload")
@@ -316,7 +316,7 @@ def do_upload_image(
         raise HTTPException(status_code=400, detail="仅支持 jpg/jpeg/png/gif/webp 图片")
     content = file.file.read()
     if len(content) > MAX_SIZE:
-        raise HTTPException(status_code=400, detail="图片大小不能超过 5MB")
+        raise HTTPException(status_code=400, detail="图片大小不能超过 10MB")
     relative = save_bytes(content, suffix, category)
     return ok(UploadOut(url=f"/uploads/{relative}").model_dump())
 
