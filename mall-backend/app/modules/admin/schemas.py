@@ -428,6 +428,16 @@ class DashboardSummaryOut(BaseModel):
     pending_order_count: int
 
 
+class DashboardTrendOut(BaseModel):
+    """数据概览图表数据（仪表盘）。"""
+
+    days: list[str]  # 近7天日期，格式 yyyy-mm-dd
+    order_trend: list[int]  # 每天订单数
+    sales_trend: list[str]  # 每天销售额（字符串，Decimal 精度）
+    category_distribution: list[dict]  # [{"name": 分类名, "value": 商品数}]
+    order_status_distribution: list[dict]  # [{"name": 中文状态, "value": 订单数}]
+
+
 class ConfigItemOut(BaseModel):
     """系统配置项。"""
 

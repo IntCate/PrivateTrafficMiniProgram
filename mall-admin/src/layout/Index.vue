@@ -5,7 +5,6 @@ import { ElMessageBox } from 'element-plus'
 import {
   DataAnalysis,
   Goods,
-  Menu,
   Tickets,
   User,
   Setting,
@@ -35,12 +34,11 @@ const role = computed(() => userStore.role)
 
 const menus = [
   { path: '/dashboard', title: '数据概览', icon: DataAnalysis, roles: ['admin', 'operator', 'finance'] },
-  { path: '/products', title: '商品管理', icon: Goods, roles: ['admin', 'operator'] },
-  { path: '/categories', title: '分类管理', icon: Menu, roles: ['admin', 'operator'] },
+  { path: '/banners', title: '运营位管理', icon: Picture, roles: ['admin', 'operator'] },
+  { path: '/catalog', title: '商品中心', icon: Goods, roles: ['admin', 'operator'] },
   { path: '/orders', title: '订单管理', icon: ShoppingCart, roles: ['admin', 'operator', 'finance'] },
   { path: '/after-sales', title: '售后管理', icon: Service, roles: ['admin', 'operator'] },
   { path: '/members', title: '会员管理', icon: User, roles: ['admin', 'operator', 'finance'] },
-  { path: '/banners', title: '运营位管理', icon: Picture, roles: ['admin', 'operator'] },
   { path: '/coupons', title: '优惠券管理', icon: Tickets, roles: ['admin', 'operator'] },
   { path: '/configs', title: '系统配置', icon: Setting, roles: ['admin'] },
   { path: '/admins', title: '管理员管理', icon: User, roles: ['admin'] },

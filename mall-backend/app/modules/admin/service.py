@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -28,6 +28,7 @@ from app.modules.admin.schemas import (
     CreateProductRequest,
     CreateProductSkuRequest,
     DashboardSummaryOut,
+    DashboardTrendOut,
     GrantCouponRequest,
     LoginOut,
     MemberAdminItemOut,
@@ -60,6 +61,8 @@ from app.modules.order.models import (
     ORDER_STATUS_PAID,
     ORDER_STATUS_PENDING,
     ORDER_STATUS_SHIPPED,
+    ORDER_STATUS_CANCELLED,
+    STATUS_TEXT,
     Order,
 )
 from app.modules.product.models import (
@@ -132,14 +135,40 @@ def update_admin_status(
     return _admin_out(admin)
 
 
-def list_products(db: Session, page: int, page_size: int, keyword: str | None = None) -> dict:
-    """商品列表（含关键词过滤）。"""
+def _category_descendant_ids(db: Session, category_id: int) -> list[int]:
+    """返回该分类及其全部子孙分类 ID（含自身），供「父分类含子孙」的商品过滤使用。"""
+    ids: list[int] = [category_id]
+    frontier: list[int] = [category_id]
+    while frontier:
+        children = [
+            cid
+            for (cid,) in db.execute(
+                select(Category.id).where(Category.parent_id.in_(frontier))
+            ).all()
+        ]
+        ids.extend(children)
+        frontier = children
+    return ids
+
+
+def list_products(
+    db: Session,
+    page: int,
+    page_size: int,
+    keyword: str | None = None,
+    category_id: int | None = None,
+) -> dict:
+    """商品列表（关键词/分类 过滤；分类为父级时含其全部子孙分类商品）。"""
     stmt = select(Product).where(Product.deleted == False)  # noqa: E712
     count_stmt = select(func.count(Product.id)).where(Product.deleted == False)  # noqa: E712
     if keyword:
         like = f"%{keyword}%"
         stmt = stmt.where(Product.name.like(like))
         count_stmt = count_stmt.where(Product.name.like(like))
+    if category_id:
+        ids = _category_descendant_ids(db, category_id)
+        stmt = stmt.where(Product.category_id.in_(ids))
+        count_stmt = count_stmt.where(Product.category_id.in_(ids))
     total = db.scalar(count_stmt) or 0
     rows = list(
         db.scalars(
@@ -356,10 +385,20 @@ def update_category(
 
 
 def delete_category(db: Session, category_id: int) -> None:
-    """删除分类。"""
+    """删除分类（其下仍有商品时禁止删除，避免产生无主商品）。"""
     category = db.get(Category, category_id)
     if not category:
         raise BizException(404, "分类不存在")
+    used = (
+        db.scalar(
+            select(func.count(Product.id)).where(
+                Product.category_id == category_id, Product.deleted == False  # noqa: E712
+            )
+        )
+        or 0
+    )
+    if used:
+        raise BizException(400, f"该分类下还有 {used} 个商品，请先移动或删除这些商品后再删分类")
     db.delete(category)
     db.commit()
     _notify_catalog_changed("category")
@@ -621,6 +660,62 @@ def dashboard_summary(db: Session) -> DashboardSummaryOut:
         member_count=member_count,
         product_count=product_count,
         pending_order_count=pending_order_count,
+    )
+
+
+def dashboard_trend(db: Session) -> DashboardTrendOut:
+    """数据概览图表（仪表盘）：近7天销售/订单趋势、分类商品占比、订单状态分布。"""
+    # 近7天按日统计订单数与销售额（销售额只计已支付/已发货/已完成）
+    paid_statuses = [ORDER_STATUS_PAID, ORDER_STATUS_SHIPPED, ORDER_STATUS_COMPLETED]
+    today = date.today()
+    days, order_trend, sales_trend = [], [], []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        start = datetime.combine(day, time.min)
+        end = datetime.combine(day, time.max)
+        order_count = (
+            db.scalar(
+                select(func.count(Order.id)).where(Order.created_at >= start, Order.created_at <= end)
+            )
+            or 0
+        )
+        sales = (
+            db.scalar(
+                select(func.coalesce(func.sum(Order.pay_amount), 0)).where(
+                    Order.created_at >= start,
+                    Order.created_at <= end,
+                    Order.status.in_(paid_statuses),
+                )
+            )
+            or Decimal("0.00")
+        )
+        days.append(day.isoformat())
+        order_trend.append(order_count)
+        sales_trend.append(str(sales))
+
+    # 分类商品分布（有效商品按所属分类分组计数）
+    category_rows = db.execute(
+        select(Category.name, func.count(Product.id))
+        .join(Product, Product.category_id == Category.id)
+        .where(Product.deleted == False)  # noqa: E712
+        .group_by(Category.id, Category.name)
+    ).all()
+    category_distribution = [{"name": name, "value": count} for name, count in category_rows]
+
+    # 订单状态分布
+    status_rows = db.execute(
+        select(Order.status, func.count(Order.id)).group_by(Order.status)
+    ).all()
+    order_status_distribution = [
+        {"name": STATUS_TEXT.get(status, status), "value": count} for status, count in status_rows
+    ]
+
+    return DashboardTrendOut(
+        days=days,
+        order_trend=order_trend,
+        sales_trend=sales_trend,
+        category_distribution=category_distribution,
+        order_status_distribution=order_status_distribution,
     )
 
 

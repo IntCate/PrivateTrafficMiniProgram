@@ -30,6 +30,14 @@ export const createBanner = (data) => request.post('/banners', data)
 export const updateBanner = (id, data) => request.put(`/banners/${id}`, data)
 export const deleteBanner = (id) => request.delete(`/banners/${id}`)
 
+// 通用图片上传：POST /admin/api/upload，category 支持 banner/product/category，返回可用 URL
+export const uploadImage = (file, category = 'banner') => {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('category', category)
+  return request.post('/upload', fd)
+}
+
 export const listCoupons = () => request.get('/coupons')
 export const createCoupon = (data) => request.post('/coupons', data)
 export const updateCoupon = (id, data) => request.put(`/coupons/${id}`, data)
@@ -39,6 +47,7 @@ export const listAfterSales = (params) => request.get('/after-sales', { params }
 export const auditAfterSale = (id, data) => request.put(`/after-sales/${id}/audit`, data)
 
 export const getDashboardSummary = () => request.get('/dashboard/summary')
+export const getDashboardTrend = () => request.get('/dashboard/trend')
 
 export const listConfigs = () => request.get('/configs')
 export const updateConfig = (key, data) => request.put(`/configs/${key}`, data)

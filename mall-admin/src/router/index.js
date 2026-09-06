@@ -21,16 +21,10 @@ const routes = [
         meta: { title: '数据概览', roles: ['admin', 'operator', 'finance'] },
       },
       {
-        path: 'products',
-        name: 'Products',
-        component: () => import('@/views/Products.vue'),
-        meta: { title: '商品管理', roles: ['admin', 'operator'] },
-      },
-      {
-        path: 'categories',
-        name: 'Categories',
-        component: () => import('@/views/Categories.vue'),
-        meta: { title: '分类管理', roles: ['admin', 'operator'] },
+        path: 'catalog',
+        name: 'Catalog',
+        component: () => import('@/views/Catalog.vue'),
+        meta: { title: '商品中心', roles: ['admin', 'operator'] },
       },
       {
         path: 'orders',

@@ -1,12 +1,16 @@
 """后台管理模块路由。对齐 docs/api-design.md §13 与 auth.md §2.2 权限矩阵。"""
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi.exceptions import HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.common.deps import require_roles
+from app.common.upload import save_bytes
 from app.core.database import get_db
 from app.core.response import ok
 from app.modules.admin import service
@@ -90,10 +94,11 @@ def do_list_products(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, alias="pageSize", ge=1, le=50),
     keyword: str | None = Query(default=None, max_length=50),
+    category_id: int | None = Query(default=None),
     admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
     db: Session = Depends(get_db),
 ) -> dict:
-    return ok(service.list_products(db, page, page_size, keyword))
+    return ok(service.list_products(db, page, page_size, keyword, category_id))
 
 
 @router.get("/products/{product_id}")
@@ -288,6 +293,34 @@ def do_update_member_status(
 # ---- 运营位（admin/operator）----
 
 
+class UploadOut(BaseModel):
+    url: str
+
+
+# 允许的图片类型与体积上限（5MB）
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_SIZE = 5 * 1024 * 1024
+
+
+@router.post("/upload")
+def do_upload_image(
+    file: UploadFile = File(...),
+    category: str = Form("banner"),
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
+) -> dict:
+    """运营位图片上传 🔒（admin/operator）。返回可访问的相对 URL。"""
+    if category not in {"banner", "product", "category"}:
+        raise HTTPException(status_code=400, detail="不支持的图片用途")
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="仅支持 jpg/jpeg/png/gif/webp 图片")
+    content = file.file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="图片大小不能超过 5MB")
+    relative = save_bytes(content, suffix, category)
+    return ok(UploadOut(url=f"/uploads/{relative}").model_dump())
+
+
 @router.get("/banners")
 def do_list_banners(
     admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR)),
@@ -398,6 +431,14 @@ def do_dashboard_summary(
     db: Session = Depends(get_db),
 ) -> dict:
     return ok(service.dashboard_summary(db).model_dump())
+
+
+@router.get("/dashboard/trend")
+def do_dashboard_trend(
+    admin: dict[str, Any] = Depends(require_roles(ROLE_ADMIN, ROLE_OPERATOR, ROLE_FINANCE)),
+    db: Session = Depends(get_db),
+) -> dict:
+    return ok(service.dashboard_trend(db).model_dump())
 
 
 # ---- 系统配置（仅 admin）----

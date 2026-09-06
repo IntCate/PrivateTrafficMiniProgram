@@ -73,13 +73,13 @@ onMounted(() => {
 
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="order_no" label="订单号" width="180" />
+        <el-table-column prop="order_no" label="订单号" min-width="200" />
         <el-table-column prop="user_id" label="用户ID" width="80" />
-        <el-table-column label="金额" width="110">
+        <el-table-column label="金额" min-width="120">
           <template #default="{ row }">¥{{ row.pay_amount }}</template>
         </el-table-column>
-        <el-table-column prop="receiver_name" label="收货人" width="100" />
-        <el-table-column prop="receiver_phone" label="电话" width="130" />
+        <el-table-column prop="receiver_name" label="收货人" min-width="120" />
+        <el-table-column prop="receiver_phone" label="电话" min-width="140" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'paid' ? 'warning' : row.status === 'completed' ? 'success' : 'info'">
@@ -87,7 +87,7 @@ onMounted(() => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="下单时间" width="170" />
+        <el-table-column prop="created_at" label="下单时间" min-width="180" />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status === 'paid'" size="small" type="primary" @click="openShip(row)">发货</el-button>
