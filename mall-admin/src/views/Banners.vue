@@ -81,8 +81,8 @@ function beforeUpload(file) {
     ElMessage.error('仅支持 jpg/png/gif/webp 图片')
     return false
   }
-  if (file.size / 1024 / 1024 > 5) {
-    ElMessage.error('图片大小不能超过 5MB')
+  if (file.size / 1024 / 1024 > 10) {
+    ElMessage.error('图片大小不能超过 10MB')
     return false
   }
   return true

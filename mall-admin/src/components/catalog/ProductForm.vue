@@ -16,6 +16,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const formRef = ref()
+const specEntries = ref([])
 const form = reactive({
   product_no: '',
   category_id: null,
@@ -26,7 +27,8 @@ const form = reactive({
   original_price: null,
   main_image: '',
   images: [],
-  detail_html: '',
+  detail_blocks: [],
+  spec: {},
   stock: 0,
   tags: [],
   shipping_from: '',
@@ -50,6 +52,7 @@ watch(
 
 function reset() {
   const e = props.editing
+  specEntries.value = Object.entries(e && e.spec ? e.spec : {}).map(([key, value]) => ({ key, value: String(value) }))
   Object.assign(
     form,
     e
@@ -63,7 +66,8 @@ function reset() {
           original_price: e.original_price != null ? Number(e.original_price) : null,
           main_image: e.main_image || '',
           images: e.images || [],
-          detail_html: e.detail_html || '',
+          detail_blocks: e.detail_blocks || [],
+          spec: e.spec || {},
           stock: e.stock,
           tags: e.tags || [],
           shipping_from: e.shipping_from || '',
@@ -80,7 +84,8 @@ function reset() {
           original_price: null,
           main_image: '',
           images: [],
-          detail_html: '',
+          detail_blocks: [],
+          spec: {},
           stock: 0,
           tags: [],
           shipping_from: '',
@@ -92,7 +97,19 @@ function reset() {
 
 async function submit() {
   await formRef.value.validate()
-  emit('saved', { ...form })
+  const spec = {}
+  specEntries.value.forEach((entry) => {
+    if (entry.key && entry.value !== '') spec[entry.key] = entry.value
+  })
+  emit('saved', { ...form, spec })
+}
+
+function addSpec() {
+  specEntries.value.push({ key: '', value: '' })
+}
+
+function removeSpec(index) {
+  specEntries.value.splice(index, 1)
 }
 
 function close() {
@@ -119,11 +136,40 @@ function beforeUpload(file) {
     ElMessage.error('仅支持 jpg/png/gif/webp 图片')
     return false
   }
-  if (file.size / 1024 / 1024 > 5) {
-    ElMessage.error('图片大小不能超过 5MB')
+  if (file.size / 1024 / 1024 > 10) {
+    ElMessage.error('图片大小不能超过 10MB')
     return false
   }
   return true
+}
+
+// 详情区块：添加文字段落
+function addTextBlock() {
+  form.detail_blocks.push({ type: 'text', content: '' })
+}
+
+// 详情区块：上传图片（成功后 push image 区块）
+async function addImageBlock(options) {
+  try {
+    const url = await uploadImage(options.file, 'product')
+    form.detail_blocks.push({ type: 'image', url })
+    ElMessage.success('图片已添加')
+    options.onSuccess(url)
+  } catch (e) {
+    ElMessage.error(e.message || '图片上传失败')
+    options.onError(e)
+  }
+}
+
+function removeBlock(index) {
+  form.detail_blocks.splice(index, 1)
+}
+
+function moveBlock(index, dir) {
+  const target = index + dir
+  if (target < 0 || target >= form.detail_blocks.length) return
+  const arr = form.detail_blocks
+  ;[arr[index], arr[target]] = [arr[target], arr[index]]
 }
 </script>
 
@@ -187,6 +233,16 @@ function beforeUpload(file) {
       <el-form-item label="标签">
         <el-select v-model="form.tags" multiple allow-create filterable default-first-option placeholder="输入后回车添加" style="width: 100%" />
       </el-form-item>
+      <el-form-item label="规格参数">
+        <div class="spec-editor">
+          <div v-for="(entry, si) in specEntries" :key="si" class="spec-item">
+            <el-input v-model="entry.key" placeholder="参数名" style="width: 40%" />
+            <el-input v-model="entry.value" placeholder="参数值" style="width: 40%" />
+            <el-button link type="danger" @click="removeSpec(si)">删除</el-button>
+          </div>
+          <el-button @click="addSpec">+ 添加参数</el-button>
+        </div>
+      </el-form-item>
       <el-form-item label="发货地">
         <el-input v-model="form.shipping_from" />
       </el-form-item>
@@ -198,6 +254,39 @@ function beforeUpload(file) {
           <el-radio :value="1">上架</el-radio>
           <el-radio :value="0">下架</el-radio>
         </el-radio-group>
+      </el-form-item>
+      <el-form-item label="详情内容">
+        <div class="block-editor">
+          <div v-for="(block, bi) in form.detail_blocks" :key="bi" class="block-item">
+            <div class="block-toolbar">
+              <span class="block-type">{{ block.type === 'text' ? '文字' : '图片' }}</span>
+              <div class="block-actions">
+                <el-button link size="small" :disabled="bi === 0" @click="moveBlock(bi, -1)">上移</el-button>
+                <el-button link size="small" :disabled="bi === form.detail_blocks.length - 1" @click="moveBlock(bi, 1)">下移</el-button>
+                <el-button link size="small" type="danger" @click="removeBlock(bi)">删除</el-button>
+              </div>
+            </div>
+            <el-input
+              v-if="block.type === 'text'"
+              v-model="block.content"
+              type="textarea"
+              :rows="3"
+              placeholder="输入文字段落"
+            />
+            <el-image v-else :src="block.url" fit="cover" class="block-image" />
+          </div>
+          <div class="block-add">
+            <el-button @click="addTextBlock">+ 添加文字</el-button>
+            <el-upload
+              accept="image/*"
+              :show-file-list="false"
+              :http-request="addImageBlock"
+              :before-upload="beforeUpload"
+            >
+              <el-button>+ 添加图片</el-button>
+            </el-upload>
+          </div>
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -255,5 +344,51 @@ function beforeUpload(file) {
 }
 .upload-trigger:hover .upload-mask {
   opacity: 1;
+}
+.block-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.block-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fafafa;
+}
+.block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.block-type {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.block-actions {
+  display: flex;
+  align-items: center;
+}
+.block-image {
+  width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+}
+.block-add {
+  display: flex;
+  gap: 10px;
+}
+.spec-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

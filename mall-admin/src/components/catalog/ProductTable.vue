@@ -2,7 +2,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 
-import { createProduct, deleteProduct, listCategories, listProducts, updateProduct, updateProductStatus } from '@/api'
+import { createProduct, deleteProduct, getProduct, listCategories, listProducts, updateProduct, updateProductStatus } from '@/api'
 import { onWS } from '@/utils/ws'
 import ProductForm from './ProductForm.vue'
 
@@ -59,8 +59,8 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openEdit(row) {
-  editing.value = row
+async function openEdit(row) {
+  editing.value = await getProduct(row.id)
   dialogVisible.value = true
 }
 
