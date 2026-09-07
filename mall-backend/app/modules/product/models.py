@@ -49,7 +49,6 @@ class Product(Base, BaseFields, SoftDeleteMixin):
     detail_blocks: Mapped[list[Any] | None] = mapped_column(
         JSON, comment="详情区块(JSON)：[{type:text|image, content/url}]"
     )
-    spec: Mapped[dict[Any, Any] | None] = mapped_column(JSON, comment="参数规格(JSON)")
     sales: Mapped[int] = mapped_column(Integer, default=0, comment="已售数量")
     stock: Mapped[int] = mapped_column(Integer, default=0, comment="总库存")
     tags: Mapped[list[Any] | None] = mapped_column(JSON, comment="标签(JSON)")

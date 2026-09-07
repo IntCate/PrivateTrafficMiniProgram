@@ -2,7 +2,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 
-import { createProduct, deleteProduct, getProduct, listCategories, listProducts, updateProduct, updateProductStatus } from '@/api'
+import { createProduct, createProductSku, deleteProduct, deleteProductSku, getProduct, listCategories, listProducts, updateProduct, updateProductSku, updateProductStatus } from '@/api'
 import { onWS } from '@/utils/ws'
 import ProductForm from './ProductForm.vue'
 
@@ -65,15 +65,44 @@ async function openEdit(row) {
 }
 
 async function handleSaved(payload) {
+  const { skuList, originalSkuIds, ...productData } = payload
+  let productId
   if (editing.value) {
-    await updateProduct(editing.value.id, payload)
+    await updateProduct(editing.value.id, productData)
+    productId = editing.value.id
     ElMessage.success('更新成功')
   } else {
-    await createProduct(payload)
+    const created = await createProduct(productData)
+    productId = created.id
     ElMessage.success('创建成功')
   }
+  await saveSkus(productId, skuList, originalSkuIds)
   dialogVisible.value = false
   load()
+}
+
+// 保存 SKU：删除被移除的，新增/更新其余
+async function saveSkus(productId, skuList, originalSkuIds) {
+  const currentIds = (skuList || []).filter((s) => s.id).map((s) => s.id)
+  const removedIds = (originalSkuIds || []).filter((id) => !currentIds.includes(id))
+  for (const id of removedIds) {
+    await deleteProductSku(productId, id)
+  }
+  for (const s of skuList || []) {
+    const payload = {
+      sku_code: s.sku_code,
+      attrs: s.attrs,
+      sku_text: s.sku_text,
+      price: s.price,
+      stock: s.stock,
+      status: s.status,
+    }
+    if (s.id) {
+      await updateProductSku(productId, s.id, payload)
+    } else {
+      await createProductSku(productId, payload)
+    }
+  }
 }
 
 async function handleStatus(row) {

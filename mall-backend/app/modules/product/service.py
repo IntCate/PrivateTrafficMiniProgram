@@ -122,7 +122,6 @@ def get_product_detail(db: Session, product_id: int) -> dict[str, Any]:
         "main_image": product.main_image,
         "images": _as_list(product.images),
         "detail_blocks": _as_list(product.detail_blocks),
-        "spec": _as_dict(product.spec),
         "sales": product.sales,
         "shipping_from": product.shipping_from,
         "is_free_shipping": bool(product.is_free_shipping),

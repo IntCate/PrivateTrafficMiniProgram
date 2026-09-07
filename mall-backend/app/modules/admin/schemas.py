@@ -95,7 +95,6 @@ class ProductAdminDetailOut(BaseModel):
     main_image: str
     images: list[str] = Field(default_factory=list)
     detail_blocks: list[dict] = Field(default_factory=list)
-    spec: dict | None = None
     sales: int
     stock: int
     tags: list[str] = Field(default_factory=list)
@@ -118,7 +117,6 @@ class CreateProductRequest(BaseModel):
     main_image: str = Field(min_length=1, max_length=512)
     images: list[str] = Field(default_factory=list)
     detail_blocks: list[dict] = Field(default_factory=list)
-    spec: dict | None = None
     stock: int = Field(default=0, ge=0)
     tags: list[str] = Field(default_factory=list)
     shipping_from: str | None = Field(default=None, max_length=32)
@@ -138,7 +136,6 @@ class UpdateProductRequest(BaseModel):
     main_image: str | None = Field(default=None, max_length=512)
     images: list[str] | None = None
     detail_blocks: list[dict] | None = None
-    spec: dict | None = None
     stock: int | None = Field(default=None, ge=0)
     tags: list[str] | None = None
     shipping_from: str | None = Field(default=None, max_length=32)

@@ -138,7 +138,6 @@ coupon (券模板)
 | main\_image        | VARCHAR(512)    | NO  | —    | 主图                                                      |
 | images             | JSON            | YES | NULL | 图片列表（`["...","..."]`），商品详情轮播                            |
 | detail\_blocks     | JSON            | YES | NULL | 商品详情区块（`[{type:text|image, content/url}]`，图文混排）            |
-| spec               | JSON            | YES | NULL | 参数规格（如 `{"材质":"织物+TPU"}`，参数规格 tab）                      |
 | sales              | INT UNSIGNED    | NO  | 0    | 已售数量（前端展示"已售 1.2万+"；支付成功自动累加 `+= qty`）                  |
 | stock              | INT UNSIGNED    | NO  | 0    | 总库存（兜底，精确库存以 SKU 为准）                                    |
 | tags               | JSON            | YES | NULL | 标签（如 `["热销","包邮"]`）                                     |

@@ -31,7 +31,6 @@
       <view id="detail-tabs" class="detail-section">
         <view class="tabs">
           <view class="tab" :class="{ active: activeTab === 'detail' }" @click="activeTab = 'detail'">商品详情</view>
-          <view class="tab" :class="{ active: activeTab === 'spec' }" @click="activeTab = 'spec'">参数规格</view>
           <view class="tab" :class="{ active: activeTab === 'review' }" @click="activeTab = 'review'">用户评价</view>
         </view>
         <view class="tab-content">
@@ -44,12 +43,7 @@
             </view>
             <view v-else class="detail-empty">暂无详情内容</view>
           </view>
-          <view v-else-if="activeTab === 'spec'">
-            <view v-if="product" class="spec-grid">
-              <view class="spec-item" v-for="(value, key) in product.spec" :key="key">{{ key }}：{{ value }}</view>
-            </view>
-          </view>
-          <view v-else class="review-empty">
+          <view v-else-if="activeTab === 'review'" class="review-empty">
             <uni-icons type="chat" size="40" color="#E5E5E5" />
             <text class="review-empty-text">暂无评价</text>
           </view>
@@ -655,22 +649,6 @@ const goBack = () => {
   width: 100%;
   border-radius: 8px;
   background-color: $mall-muted;
-}
-
-.spec-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.spec-item {
-  padding: 10px;
-  background-color: $mall-card;
-  border: 1px solid $mall-border;
-  border-radius: 8px;
-  font-size: 12px;
-  color: $mall-muted-foreground;
 }
 
 .review-empty {

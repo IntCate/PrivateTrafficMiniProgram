@@ -90,7 +90,6 @@ CREATE TABLE `product` (
   `main_image`      VARCHAR(512)    NOT NULL COMMENT '主图',
   `images`          JSON            DEFAULT NULL COMMENT '图片列表',
   `detail_blocks`   JSON            DEFAULT NULL COMMENT '详情区块(JSON)：[{type:text|image, content/url}]',
-  `spec`            JSON            DEFAULT NULL COMMENT '参数规格',
   `sales`           INT UNSIGNED    NOT NULL DEFAULT 0 COMMENT '已售数量',
   `stock`           INT UNSIGNED    NOT NULL DEFAULT 0 COMMENT '总库存（兜底，精确以 SKU 为准）',
   `tags`            JSON            DEFAULT NULL COMMENT '标签',

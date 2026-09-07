@@ -298,7 +298,6 @@ GET /api/products/{id}
     { "type": "image", "url": "/uploads/detail/xxx.jpg" },
     { "type": "text", "content": "精选优质材料，匠心工艺" }
   ],
-  "spec": { "材质": "织物+TPU", "闭合": "系带", "适用": "跑步/休闲", "产地": "中国" },
   "sales": 12000,
   "shippingFrom": "上海",
   "isFreeShipping": true,

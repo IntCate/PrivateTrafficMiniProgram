@@ -13,6 +13,11 @@ export const updateProduct = (id, data) => request.put(`/products/${id}`, data)
 export const updateProductStatus = (id, data) => request.put(`/products/${id}/status`, data)
 export const deleteProduct = (id) => request.delete(`/products/${id}`)
 
+export const listProductSkus = (productId) => request.get(`/products/${productId}/skus`)
+export const createProductSku = (productId, data) => request.post(`/products/${productId}/skus`, data)
+export const updateProductSku = (productId, skuId, data) => request.put(`/products/${productId}/skus/${skuId}`, data)
+export const deleteProductSku = (productId, skuId) => request.delete(`/products/${productId}/skus/${skuId}`)
+
 export const listCategories = () => request.get('/categories')
 export const createCategory = (data) => request.post('/categories', data)
 export const updateCategory = (id, data) => request.put(`/categories/${id}`, data)

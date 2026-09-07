@@ -21,7 +21,6 @@ def _product(id: int, *, status: int = 1, deleted: bool = False) -> object:
         main_image="/img.jpg",
         images=["/img.jpg"],
         detail_blocks=[{"type": "text", "content": "d"}],
-        spec={"材质": "棉"},
         sales=10,
         shipping_from="上海",
         is_free_shipping=True,

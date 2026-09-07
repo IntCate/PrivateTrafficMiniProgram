@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import { reactive, ref, watch } from 'vue'
 import { Plus, RefreshRight } from '@element-plus/icons-vue'
 
-import { uploadImage } from '@/api'
+import { listProductSkus, uploadImage } from '@/api'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -16,7 +16,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const formRef = ref()
-const specEntries = ref([])
 const form = reactive({
   product_no: '',
   category_id: null,
@@ -28,7 +27,6 @@ const form = reactive({
   main_image: '',
   images: [],
   detail_blocks: [],
-  spec: {},
   stock: 0,
   tags: [],
   shipping_from: '',
@@ -43,6 +41,116 @@ const rules = {
   main_image: [{ required: true, message: '请上传主图', trigger: 'blur' }],
 }
 
+// ---- SKU 管理（颜色/尺码等购买规格，由后台用户自定义）----
+const skuLoading = ref(false)
+const attrGroups = ref([]) // [{ name, values: [] }]
+const skuList = ref([]) // [{ id?, attrs, sku_code, sku_text, price, stock, status }]
+const originalSkuIds = ref([]) // 编辑时已存在的 SKU id，用于保存时识别删除
+
+function addAttrGroup() {
+  attrGroups.value.push({ name: '', values: [] })
+}
+
+function removeAttrGroup(index) {
+  attrGroups.value.splice(index, 1)
+}
+
+function addAttrValue(gi) {
+  attrGroups.value[gi].values.push('')
+}
+
+function removeAttrValue(gi, vi) {
+  attrGroups.value[gi].values.splice(vi, 1)
+}
+
+// 根据属性组笛卡尔积生成 SKU 草稿（保留已填价格/库存）
+function generateSkus() {
+  const groups = attrGroups.value.filter((g) => g.name && g.values.some((v) => v))
+  if (!groups.length) {
+    ElMessage.warning('请先填写属性组名称和属性值')
+    return
+  }
+  const combos = groups.reduce(
+    (acc, g) => {
+      const values = g.values.filter((v) => v)
+      const next = []
+      acc.forEach((prev) => {
+        values.forEach((v) => next.push([...prev, { name: g.name, value: v }]))
+      })
+      return next
+    },
+    [[]]
+  )
+  const existing = new Map(skuList.value.map((s) => [s.attrs.map((a) => `${a.name}:${a.value}`).join('|'), s]))
+  const merged = combos.map((attrs) => {
+    const key = attrs.map((a) => `${a.name}:${a.value}`).join('|')
+    const prev = existing.get(key)
+    return {
+      id: prev ? prev.id : undefined,
+      attrs,
+      sku_code: prev ? prev.sku_code : '',
+      sku_text: prev ? prev.sku_text : attrs.map((a) => a.value).join(' / '),
+      price: prev ? prev.price : 0,
+      stock: prev ? prev.stock : 0,
+      status: prev ? prev.status : 1,
+    }
+  })
+  skuList.value = merged
+}
+
+function addSku() {
+  skuList.value.push({
+    id: undefined,
+    attrs: [],
+    sku_code: '',
+    sku_text: '',
+    price: 0,
+    stock: 0,
+    status: 1,
+  })
+}
+
+function removeSku(index) {
+  skuList.value.splice(index, 1)
+}
+
+async function loadSkus(productId) {
+  if (!productId) {
+    skuList.value = []
+    originalSkuIds.value = []
+    return
+  }
+  skuLoading.value = true
+  try {
+    const data = await listProductSkus(productId)
+    skuList.value = (data.list || []).map((s) => ({
+      id: s.id,
+      attrs: s.attrs || [],
+      sku_code: s.sku_code,
+      sku_text: s.sku_text,
+      price: Number(s.price),
+      stock: s.stock,
+      status: s.status,
+    }))
+    originalSkuIds.value = skuList.value.map((s) => s.id)
+    // 由已有 SKU 反推属性组
+    const groups = []
+    skuList.value.forEach((s) => {
+      s.attrs.forEach((a) => {
+        let g = groups.find((x) => x.name === a.name)
+        if (!g) {
+          g = { name: a.name, values: [] }
+          groups.push(g)
+        }
+        if (!g.values.includes(a.value)) g.values.push(a.value)
+      })
+    })
+    attrGroups.value = groups
+  } finally {
+    skuLoading.value = false
+  }
+}
+
 watch(
   () => props.modelValue,
   (v) => {
@@ -52,7 +160,6 @@ watch(
 
 function reset() {
   const e = props.editing
-  specEntries.value = Object.entries(e && e.spec ? e.spec : {}).map(([key, value]) => ({ key, value: String(value) }))
   Object.assign(
     form,
     e
@@ -67,7 +174,6 @@ function reset() {
           main_image: e.main_image || '',
           images: e.images || [],
           detail_blocks: e.detail_blocks || [],
-          spec: e.spec || {},
           stock: e.stock,
           tags: e.tags || [],
           shipping_from: e.shipping_from || '',
@@ -85,7 +191,6 @@ function reset() {
           main_image: '',
           images: [],
           detail_blocks: [],
-          spec: {},
           stock: 0,
           tags: [],
           shipping_from: '',
@@ -93,23 +198,16 @@ function reset() {
           status: 1,
         }
   )
+  loadSkus(e ? e.id : null)
 }
 
 async function submit() {
   await formRef.value.validate()
-  const spec = {}
-  specEntries.value.forEach((entry) => {
-    if (entry.key && entry.value !== '') spec[entry.key] = entry.value
+  emit('saved', {
+    ...form,
+    skuList: skuList.value,
+    originalSkuIds: originalSkuIds.value,
   })
-  emit('saved', { ...form, spec })
-}
-
-function addSpec() {
-  specEntries.value.push({ key: '', value: '' })
-}
-
-function removeSpec(index) {
-  specEntries.value.splice(index, 1)
 }
 
 function close() {
@@ -233,16 +331,6 @@ function moveBlock(index, dir) {
       <el-form-item label="标签">
         <el-select v-model="form.tags" multiple allow-create filterable default-first-option placeholder="输入后回车添加" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="规格参数">
-        <div class="spec-editor">
-          <div v-for="(entry, si) in specEntries" :key="si" class="spec-item">
-            <el-input v-model="entry.key" placeholder="参数名" style="width: 40%" />
-            <el-input v-model="entry.value" placeholder="参数值" style="width: 40%" />
-            <el-button link type="danger" @click="removeSpec(si)">删除</el-button>
-          </div>
-          <el-button @click="addSpec">+ 添加参数</el-button>
-        </div>
-      </el-form-item>
       <el-form-item label="发货地">
         <el-input v-model="form.shipping_from" />
       </el-form-item>
@@ -286,6 +374,68 @@ function moveBlock(index, dir) {
               <el-button>+ 添加图片</el-button>
             </el-upload>
           </div>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="购买规格">
+        <div class="sku-editor" v-loading="skuLoading">
+          <div class="sku-tip">配置颜色/尺码等购买规格（SKU），由后台自定义属性组，前端购买时据此选择。</div>
+
+          <div class="sku-groups">
+            <div v-for="(group, gi) in attrGroups" :key="gi" class="sku-group">
+              <div class="sku-group-head">
+                <el-input v-model="group.name" placeholder="属性组名，如：颜色" style="width: 160px" />
+                <el-button link type="danger" @click="removeAttrGroup(gi)">删除属性组</el-button>
+              </div>
+              <div class="sku-values">
+                <div v-for="(val, vi) in group.values" :key="vi" class="sku-value">
+                  <el-input v-model="group.values[vi]" placeholder="属性值，如：黑色" style="width: 160px" />
+                  <el-button link type="danger" @click="removeAttrValue(gi, vi)">删除</el-button>
+                </div>
+                <el-button size="small" @click="addAttrValue(gi)">+ 添加属性值</el-button>
+              </div>
+            </div>
+            <el-button @click="addAttrGroup">+ 添加属性组</el-button>
+          </div>
+
+          <div class="sku-generate">
+            <el-button type="primary" plain @click="generateSkus">生成 SKU 组合</el-button>
+            <el-button @click="addSku">+ 手动添加 SKU</el-button>
+          </div>
+
+          <el-table v-if="skuList.length" :data="skuList" border size="small" class="sku-table">
+            <el-table-column label="规格" min-width="160">
+              <template #default="{ row }">
+                <el-input v-model="row.sku_text" placeholder="规格文案，如：黑色 / 42" />
+              </template>
+            </el-table-column>
+            <el-table-column label="SKU 编码" width="150">
+              <template #default="{ row }">
+                <el-input v-model="row.sku_code" placeholder="如：P001-B-42" />
+              </template>
+            </el-table-column>
+            <el-table-column label="价格" width="120">
+              <template #default="{ row }">
+                <el-input-number v-model="row.price" :min="0" :precision="2" :controls="false" style="width: 100%" />
+              </template>
+            </el-table-column>
+            <el-table-column label="库存" width="110">
+              <template #default="{ row }">
+                <el-input-number v-model="row.stock" :min="0" :controls="false" style="width: 100%" />
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <el-switch v-model="row.status" :active-value="1" :inactive-value="0" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="70">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="removeSku($index)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-else class="sku-empty">暂无 SKU，可先添加属性组后「生成 SKU 组合」</div>
         </div>
       </el-form-item>
     </el-form>
@@ -380,15 +530,57 @@ function moveBlock(index, dir) {
   display: flex;
   gap: 10px;
 }
-.spec-editor {
+.sku-editor {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
-.spec-item {
+.sku-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.sku-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sku-group {
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fafafa;
+}
+.sku-group-head {
   display: flex;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sku-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+.sku-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sku-generate {
+  display: flex;
+  gap: 10px;
+}
+.sku-table {
+  width: 100%;
+}
+.sku-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  border: 1px dashed #e4e7ed;
+  border-radius: 6px;
 }
 </style>
